@@ -9,7 +9,7 @@
         #end if
     </command>
     <inputs>
-        <param name="species" type="select" label="Select an organism of interest">
+        <param name="species" type="select" label="Organism of interest">
             <option value="athaliana" selected="true">Arabidopsis thaliana</option>
             <option value="celegans">Caenorhabditis elegans</option>
             <option value="dmelanogaster">Drosophila melanogaster</option>
@@ -21,22 +21,60 @@
             <option value="scerevisiae">Saccharomyces cerevisiae</option>
         </param>
         <conditional name="data_set_type">
-            <param name="search_by_selector" type="select" label="Search types">
+            <param name="search_by_selector" type="select" label="Search type">
                 <option value="accession">By accession numbers</option>
                 <option value="keyword">By keyword</option>
             </param>
             <when value="accession">
                 <param name="accession_numbers" type="text" value="GSE63462,SRP070529,SRR401430"
-                       label="Multiple accessions can be separated by commas. Try GSE63462,SRP070529,SRR401430 for A. thaliana"/>
+                       label="Accession number"
+                       help="Multiple accessions can be separated by commas. Try GSE63462,SRP070529,SRR401430 for A. thaliana"/>
             </when>
             <when value="keyword">
                 <param name="keyword_search" type="text" value="ethanol"
-                       label="Case-insensitive. Try 'ethanol' for S. cerevisiae"/>
+                       label="Keyword" help="Case-insensitive. Try 'ethanol' for S. cerevisiae"/>
             </when>
         </conditional>
+        <conditional name="write_to_file">
+            <param name="do_write" type="select" label="Write results to file?" >
+                <option value="0" selected="true">No</option>
+                <option value="1">Yes</option>
+            </param>
+            <when value="1">
+                <param name="zip_name" type="text" value="dee2_results" label="Zip name to save files to"/>
+            </when>
+        </conditional>
+        <section name="std_func" title="Standard functions" help="Additional functions to be run on the given input">
+            <param name="std_funcs" type="select" label="Functions">
+                <option value="getDEE2_bundle" selected="true">Fetch gene expression data</option>
+                <option value="getDEE2Metadata">Get organism Metadata</option>
+                <option value="list_bundles">Completed DEE2 projects</option>
+                <option value="query_bundles">Query bundle existence</option>
+                <option value="queryDEE2"> Query Dataset availability</option>
+            </param>
+        </section>
+        <section name="adv_func" title="Advanced functions" help="These functions run a DEE2 instance in the background">
+            <param name="getdee2_funcs" type="select" label="Functions">
+                <option value="se" selected="true">Create summarizedExperiment object</option>
+                <option value="srx_agg">Summarized run data to experiments</option>
+                <option value="Tx2Gene"> Aggregate Transcript Counts to Gene-Level Counts</option>
+            </param>
+        </section>
+        <section name="aux_funcs" title="Results manipulators" help="These can only be run on DEE2 zip files">
+            <param format="zip" name="dee2_zipfile" type="data" label="DEE2 zip" help="DEE2 zip file missing? See tip below"/>
+            <param name="zip_funcs" type="select" label="Functions">
+                <option value="loadFullMeta" selected="true">Load Full Meta</option>
+                <option value="loadGeneCounts">Load Gene Counts</option>
+                <option value="loadGeneInfo">Load Gene Info</option>
+                <option value="loadQcMx">Load Quality Control Info</option>
+                <option value="loadSummaryMeta">Load Summary Meta</option>
+                <option value="loadTxCounts">Load Transcript Counts</option>
+                <option value="loadTxInfo">Load Transcript Info</option>
+            </param>
+        </section>
     </inputs>
     <outputs>
-        <data format="tabular" name="output"/>
+        <data format_source="dee2_zip" name="dee2_results" metadata_source="dee2_zip"/>
     </outputs>
     <help>
 .. _NCBI Sequence Read Archive: http://www.ncbi.nlm.nih.gov/sra
@@ -47,6 +85,10 @@
 .. class:: warningmark
 
 Keyword searches in mouse and human take up to a minute to complete.
+
+.. class:: infomark
+
+getDEE2 zip files can be obtained by running the DEE2 function --> this needs to be updated - it is not clear.
 
 **Usage**
 

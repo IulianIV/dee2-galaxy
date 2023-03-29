@@ -22,20 +22,14 @@ def main():
 
     if selector == 'accession':
 
-        dee2 = DEE2(supress_r_warnings=True)
+        dee2 = DEE2(supress_r_warnings=False)
 
         dee2.data_set = data_set
         dee2.species = species
 
         # query = dee2.queryDEE2()
-        # meta_data = dee2.getDEE2Metadata()
-        # list_bundles = dee2.list_bundles()
-        # query_bundles = dee2.query_bundles()
-        # get_dee_bundles = dee2.getDEE2_bundle()
-        # get_dee2 = dee2.getDEE2()
-        se = dee2.se()
-        print(f'final results: {se}')
-
+        get_dee2 = dee2.getDEE2()
+        print(f'final results: {get_dee2}')
 
 
 if __name__ == '__main__':

@@ -21,6 +21,7 @@ from rpy2.robjects.vectors import BoolVector
 valid_species = {'athaliana', 'celegans', 'dmelanogaster', 'drerio', 'ecoli',
                  'hsapiens', 'mmusculus', 'rnorvegicus', 'scerevisiae'}
 
+# Set of valid column names recognized by dee2.io
 valid_cols = {'file_name', 'date_added', 'time_added', 'file_size',
               'SRP_accession', 'GSE_accession'}
 
@@ -136,7 +137,6 @@ class DEE2:
         get_dee2 = robjects.r['getDEE2']
 
         srr_vector = self.convert_to_srr_vector() or srr_vector
-
         data = get_dee2(species, srr_vector, counts, metadata, outfile, legacy, base_url)
 
         return data
