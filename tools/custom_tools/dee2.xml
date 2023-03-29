@@ -1,0 +1,79 @@
+<tool id="dee2" name="DEE2" versino="0.1.0">
+    <description>Galaxy implementation</description>
+    <command>
+        python '$__tool_directory__/dee2.py'
+        #if $data_set_type.search_by_selector == "accession"
+        'accession' '$data_set_type.accession_numbers' '$species'
+        #else
+        'keyword' '$data_set_type.keyword_search' '$species'
+        #end if
+    </command>
+    <inputs>
+        <param name="species" type="select" label="Select an organism of interest">
+            <option value="athaliana" selected="true">Arabidopsis thaliana</option>
+            <option value="celegans">Caenorhabditis elegans</option>
+            <option value="dmelanogaster">Drosophila melanogaster</option>
+            <option value="drerio">Danio rerio</option>
+            <option value="ecoli">Escherichia coli</option>
+            <option value="hsapiens">Homo sapiens</option>
+            <option value="mmusculus">Mus musculus</option>
+            <option value="rnorvegicus">Rattus norvegicus</option>
+            <option value="scerevisiae">Saccharomyces cerevisiae</option>
+        </param>
+        <conditional name="data_set_type">
+            <param name="search_by_selector" type="select" label="Search types">
+                <option value="accession">By accession numbers</option>
+                <option value="keyword">By keyword</option>
+            </param>
+            <when value="accession">
+                <param name="accession_numbers" type="text" value="GSE63462,SRP070529,SRR401430"
+                       label="Multiple accessions can be separated by commas. Try GSE63462,SRP070529,SRR401430 for A. thaliana"/>
+            </when>
+            <when value="keyword">
+                <param name="keyword_search" type="text" value="ethanol"
+                       label="Case-insensitive. Try 'ethanol' for S. cerevisiae"/>
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data format="tabular" name="output"/>
+    </outputs>
+    <help>
+.. _NCBI Sequence Read Archive: http://www.ncbi.nlm.nih.gov/sra
+.. _GEO: http://www.ncbi.nlm.nih.gov/geo/
+.. _SRA: http://www.ncbi.nlm.nih.gov/sra
+.. _here: https://dee2.io/metadata
+.. _experimental: https://dee2.io/request.html
+.. class:: warningmark
+
+Keyword searches in mouse and human take up to a minute to complete.
+
+**Usage**
+
+Executing the script in the command line is done as such: ``python dee2.py selector data_set_type species``.
+
+``selector`` can only be of **accession** or **keyword**.
+
+``data_set_type`` in the case of **accession** selection has to be a series of `comma-separated` accession numbers.
+
+``species`` has to be an organism of interest supported by DEE2.
+
+-----
+
+**Other information**
+
+Digital Expression Explorer 2 (DEE2) is a repository of uniformly processed RNA-seq data mined from public data
+obtained from `NCBI Sequence Read Archive`_.
+
+More sophisticated keyword searches can be done at GEO_ and SRA_, to identify studies and accession numbers of
+interest.
+
+Browse the metadata catalogue here_.
+
+Can't find your project of interest in our dataset? Try requesting a SRA project to be added to the express
+queue here (experimental_).
+    </help>
+    <citations>
+        <citation type="doi">https://doi.org/10.1093/gigascience/giz022</citation>
+    </citations>
+</tool>
