@@ -8,7 +8,6 @@ from rpy2.rinterface import NULL
 
 # TODO All "loadXYZ" functions rely on zipfile processing.
 #   How should the zip file be processed if there is a choice to not save it locally?
-# TODO create a decorator for the species validation?
 # TODO Add type hints too all functions and arguments if necessary
 # TODO check this situation that occurs on multiple functions
 #  @param ... Additional parameters to be passed to download.file.
@@ -451,8 +450,7 @@ class DEE2:
 
         return data
 
-    # Depends on getDEE2
-    def se(self, get_dee2=None, counts: str = "GeneCounts"):
+    def se(self, get_dee2: RS4 = None, counts: str = "GeneCounts"):
         """
         Runs the se() R function from getDEE2 R package.
 
@@ -471,8 +469,7 @@ class DEE2:
 
         return self._call_get_dee2_dependent('se', get_dee2, counts)
 
-    # TODO type hints for getDEE2 - what type is it?
-    def srx_agg(self, get_dee2: getDEE2 = None, counts: str = 'GeneCounts'):
+    def srx_agg(self, get_dee2: RS4 = None, counts: str = 'GeneCounts'):
         """
         Runs the srx_agg() R function from getDEE2 R package.
 
@@ -492,7 +489,7 @@ class DEE2:
 
         return self._call_get_dee2_dependent('srx_agg', get_dee2, counts)
 
-    def Tx2Gene(self, get_dee2=None):
+    def Tx2Gene(self, get_dee2: RS4 = None):
         """
         Runs the Tx2Gene() R function from getDEE2 R package.
 
