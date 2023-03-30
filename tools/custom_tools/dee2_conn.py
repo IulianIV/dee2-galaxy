@@ -1,8 +1,10 @@
 import rpy2.rinterface
 from rpy2.robjects.packages import importr
 from rpy2 import robjects
-from rpy2.robjects.vectors import ListVector
-from rpy2.robjects.vectors import BoolVector
+from rpy2.robjects.vectors import ListVector, BoolVector, DataFrame
+from rpy2.robjects.methods import RS4
+from rpy2.rinterface import NULL
+
 
 # TODO All "loadXYZ" functions rely on zipfile processing.
 #   could all these functions be combined in a single larger functions for easier access?
@@ -16,6 +18,10 @@ from rpy2.robjects.vectors import BoolVector
 #   Nonetheless, it seems that there are places where "query" is required, which is similar to SRRVector
 #   but I think single values can be placed.
 # TODO test all `load` functions against a downloaded zip file
+# TODO when the users passes a path to to output file check if that path exists, otherwise create it. Add this info
+#   as tip at `.xml` file level
+# TODO adding out files from the input does not seem to save any files... might be because of Galaxy itself
+#   try and see if the file can be saved in history then downloaded
 
 # Set of valid species recognized by dee2.io
 valid_species = {'athaliana', 'celegans', 'dmelanogaster', 'drerio', 'ecoli',
@@ -25,7 +31,9 @@ valid_species = {'athaliana', 'celegans', 'dmelanogaster', 'drerio', 'ecoli',
 valid_cols = {'file_name', 'date_added', 'time_added', 'file_size',
               'SRP_accession', 'GSE_accession'}
 
-NULL = rpy2.rinterface.NULL
+# Set of valid counts names recognized by dee2.io
+valid_counts = {'GeneCounts', 'TxCounts', 'Tx2Gene'}
+
 FALSE = BoolVector((False,))
 TRUE = BoolVector((True,))
 
@@ -49,6 +57,7 @@ class DEE2:
         self.data_set = None
 
         self.metadata = NULL
+        self.outfile = NULL
 
     @staticmethod
     def _supress_r_warnings():
@@ -65,24 +74,27 @@ class DEE2:
 
         rpy2.rinterface_lib.callbacks.consolewrite_warnerror = no_callback
 
-    @staticmethod
-    def _check_species(species):
-        if species not in valid_species:
-            print(f'''
-            Provided species {species} is not found in the list. Check spelling and try again.
-            Valid species are {', '.join(valid_species)}.
-            ''')
+    def _check_species(self, species: str) -> bool:
+        return self._check_values(species, valid_species)
 
-            return False
-        else:
-            return True
+    def _check_cols(self, col: str) -> bool:
+        return self._check_values(col, valid_cols)
+
+    def _check_counts(self, count: str) -> bool:
+        return self._check_values(count, valid_counts)
 
     @staticmethod
-    def _check_cols(col):
-        if col not in valid_cols:
+    def _check_values(data: str, data_set: set) -> bool:
+        """
+        Provides a way to validate function arguments against known values. Helps keep DRY.
+        :param data: value to check against 'data_set'
+        :param data_set: Set datatype which contains valid values
+        :return: True or False depending on existence of data in data_set
+        """
+        if data not in data_set:
             print(f'''
-            Provided column {col} is not found in the list. Check spelling and try again.
-            Valid columns are {', '.join(valid_cols)}.
+            Provided value {data} is not found in the list. Check spelling and try again.
+            Valid values are {', '.join(data_set)}.
             ''')
 
             return False
@@ -102,10 +114,9 @@ class DEE2:
         # to grab it correctly the first index must be accessed
         return srr_vector[0]
 
-    # TODO Add typing hints for outfile
     def getDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, counts: str = 'GeneCounts',
-                metadata=NULL, outfile=NULL,
-                legacy=FALSE, base_url='http://dee2.io/cgi-bin/request.sh?'):
+                metadata=NULL, outfile: [str, NULL] = NULL,
+                legacy=FALSE, base_url='http://dee2.io/cgi-bin/request.sh?') -> [None, RS4]:
         """
         Runs the getDEE2() R function from getDEE2 R package.
 
@@ -130,12 +141,16 @@ class DEE2:
 
         species = self.species or species
         metadata = self.metadata or metadata
+        outfile = self.outfile or outfile
+
+        # TODO add instance level counts
+        if not self._check_counts(counts):
+            return None
 
         if not self._check_species(species):
             return None
 
         get_dee2 = robjects.r['getDEE2']
-
         srr_vector = self.convert_to_srr_vector() or srr_vector
         data = get_dee2(species, srr_vector, counts, metadata, outfile, legacy, base_url)
 
@@ -146,10 +161,15 @@ class DEE2:
     # TODO col needs to be selected from Galaxy and passed on. Adding it as class attribute does not make sense
     #   in this case
     # TODO col will have to be replaced with None after the previous TODO is done
-    # TODO Specifically add typing for this return type: SummarizedExperiment
+    # TODO the 'query' (or in our case the srr_vector) field IS NOT a vector field. It is a standard string
+    #   representing a dataset name. Therefore it only accepts A SINGLE VALUE.
+    #   Converting it to srr_vector is redundant.
+    # TODO edit out the srr_vector, add and validate it as single string and in the front-end, when this function
+    #   is chosen show a text saying that from the data_set input ONLY THE FIRST value will be kept and that it only
+    #   accepts single values. At the moment tests will be done as is.
     def getDEE2_bundle(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
                        bundles=NULL, counts: str = 'GeneCounts', legacy=FALSE,
-                       base_url: str = "http://dee2.io/huge/"):
+                       base_url: str = "http://dee2.io/huge/") -> [None, RS4]:
 
         """
         Runs the getDEE2_bundle() R function from getDEE2 R package.
@@ -190,6 +210,10 @@ class DEE2:
         if not self._check_cols(col):
             return None
 
+        # TODO add instance level counts
+        if not self._check_counts(counts):
+            return None
+
         get_dee2_bundles = robjects.r['getDEE2_bundle']
 
         srr_vector = self.convert_to_srr_vector() or srr_vector
@@ -198,8 +222,7 @@ class DEE2:
 
         return data
 
-    # TODO Add typing hints for outfile
-    def getDEE2Metadata(self, species: str = None, outfile=NULL):
+    def getDEE2Metadata(self, species: str = None, outfile: [str, NULL] = NULL) -> [None, DataFrame]:
         """
         Runs the getDEE2Metadata() R function for getDEE2 R package.
 
@@ -212,6 +235,7 @@ class DEE2:
         :returns: a table of metadata.
         """
         species = self.species or species
+        outfile = self.outfile or outfile
 
         if not self._check_species(species):
             return None
@@ -222,6 +246,7 @@ class DEE2:
 
         return data
 
+    # TODO what to do here front-end wise when no file is provided? just print it?
     def list_bundles(self, species: str = None):
         """
         Runs the list_bundles() R function for getDEE2 R package.
@@ -243,13 +268,17 @@ class DEE2:
         return data
 
     @staticmethod
-    def _call_load_functions(func_name: str, zip_name: str = None):
+    def _call_load_functions(func_name: str, zip_name: str = None) -> [str, DataFrame]:
         """
         Makes sure the code respects the DRY principle.
 
         All getDEE2 R functions which contain a leading 'load' require the same argument 'zipname'
         It makes sense to create a function which handles the calls, instead of duplicating code.
         """
+
+        if func_name is None:
+            return print("You have not set a load function to call. Please set the 'load_func' attribute.")
+
         grab_func = robjects.r[func_name]
 
         data = grab_func(zip_name)
@@ -264,6 +293,10 @@ class DEE2:
         it makes sense to use a single function to call any of the 3 above.
         """
 
+        # TODO add instance level counts
+        if not self._check_counts(counts):
+            return None
+
         get_dee2 = self.getDEE2(legacy=TRUE) or get_dee2
 
         grab_func = robjects.r[func_name]
@@ -273,9 +306,11 @@ class DEE2:
         else:
             data = grab_func(get_dee2, counts)
 
+        print(f'type of this function: {type(data)}')
+
         return data
 
-    def loadFullMeta(self, zip_name: str):
+    def loadFullMeta(self, zip_name: str) -> [str, DataFrame]:
         """
         Runs the loadFullMeta() R function from getDEE2 R package.
 
@@ -286,9 +321,9 @@ class DEE2:
         :returns: a dataframe of full metadata.
         """
 
-        return self._call_load_functions(zip_name)
+        return self._call_load_functions('loadFullMeta', zip_name)
 
-    def loadGeneCounts(self, zip_name: str):
+    def loadGeneCounts(self, zip_name: str) -> [str, DataFrame]:
         """
         Runs the loadGeneCounts() R function from getDEE2 R package.
 
@@ -299,9 +334,9 @@ class DEE2:
         :returns: a dataframe of gene expression counts.
         """
 
-        return self._call_load_functions(zip_name)
+        return self._call_load_functions('loadGeneCounts', zip_name)
 
-    def loadGeneInfo(self, zip_name: str):
+    def loadGeneInfo(self, zip_name: str) -> [str, DataFrame]:
         """
         Runs the loadGeneInfo() R function from getDEE2 R package.
 
@@ -313,9 +348,9 @@ class DEE2:
         :returns: a dataframe of gene information.
         """
 
-        return self._call_load_functions(zip_name)
+        return self._call_load_functions('loadGeneInfo', zip_name)
 
-    def loadQcMx(self, zip_name: str):
+    def loadQcMx(self, zip_name: str) -> [str, DataFrame]:
         """
         Runs the loadQcMx() R function from getDEE2 R package.
 
@@ -328,9 +363,9 @@ class DEE2:
         :returns: a dataframe of quality control metrics.
         """
 
-        return self._call_load_functions(zip_name)
+        return self._call_load_functions('loadQcMx', zip_name)
 
-    def loadSummaryMeta(self, zip_name: str):
+    def loadSummaryMeta(self, zip_name: str) -> [str, DataFrame]:
         """
         Runs the loadSummaryMeta() R function from getDEE2 R package.
 
@@ -342,9 +377,9 @@ class DEE2:
         :returns: a dataframe of summary metadata.
         """
 
-        return self._call_load_functions(zip_name)
+        return self._call_load_functions('loadSummaryMeta', zip_name)
 
-    def loadTxCounts(self, zip_name: str):
+    def loadTxCounts(self, zip_name: str) -> [str, DataFrame]:
         """
         Runs the loadTxCounts() R function from getDEE2 R package.
 
@@ -356,9 +391,9 @@ class DEE2:
         :returns: a dataframe of transcript expression counts.
         """
 
-        return self._call_load_functions(zip_name)
+        return self._call_load_functions('loadTxCounts', zip_name)
 
-    def loadTxInfo(self, zip_name: str):
+    def loadTxInfo(self, zip_name: str) -> [str, DataFrame]:
         """
         Runs the loadTxInfo() R function from getDEE2 R package.
 
@@ -372,14 +407,19 @@ class DEE2:
         :returns: a dataframe of transcript info.
         """
 
-        return self._call_load_functions(zip_name)
+        return self._call_load_functions('loadTxInfo', zip_name)
 
     # TODO bundles is expected to be a table how to pass this to R from Python if previously generated?
-    # TODO This function, and previously others, seem to print out 'list()' results which I need to access somehow
     # TODO col needs to be selected from Galaxy and passed on. Adding it as class attribute does not make sense
     #   in this case
+    # TODO the 'query' (or in our case the srr_vector) field IS NOT a vector field. It is a standard string
+    #   representing a dataset name. Therefore it only accepts A SINGLE VALUE.
+    #   Converting it to srr_vector is redundant.
+    # TODO edit out the srr_vector, add and validate it as single string and in the front-end, when this function
+    #   is chosen show a text saying that from the data_set input ONLY THE FIRST value will be kept and that it only
+    #   accepts single values. At the moment tests will be done as is.
     def query_bundles(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
-                      bundles=NULL):
+                      bundles=NULL) -> [None, ListVector]:
         """
         Runs the query_bundles() R function from getDEE2 R package.
 
@@ -411,7 +451,7 @@ class DEE2:
 
         return data
 
-    def queryDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, metadata=NULL):
+    def queryDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, metadata=NULL) -> [None, ListVector]:
         """
         Runs the queryDEE2() R function from getDEE2 R package.
 
@@ -421,7 +461,7 @@ class DEE2:
 
         :param species: A character string matching a species of interest.
         :param srr_vector: A character string or vector thereof of SRA run accession numbers
-        :param metadata: metadata optional R object of DEE2 metadata to query.
+        :param metadata: optional R object of DEE2 metadata to query.
         :returns: a list of datasets that are present and absent
         """
         species = self.species or species
@@ -434,6 +474,8 @@ class DEE2:
         query_dee2 = robjects.r['queryDEE2']
 
         data = query_dee2(species, srr_vector, metadata)
+
+        print(f'type of this function: {type(data)}')
 
         return data
 
@@ -454,6 +496,7 @@ class DEE2:
             Default is "GeneCounts"
         :returns: a SummarizedExperiment object
         """
+
         return self._call_get_dee2_dependent('se', get_dee2, counts)
 
     # TODO type hints for getDEE2 - what type is it?
