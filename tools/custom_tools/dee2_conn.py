@@ -7,7 +7,6 @@ from rpy2.rinterface import NULL
 
 
 # TODO All "loadXYZ" functions rely on zipfile processing.
-#   could all these functions be combined in a single larger functions for easier access?
 #   How should the zip file be processed if there is a choice to not save it locally?
 # TODO create a decorator for the species validation?
 # TODO Add type hints too all functions and arguments if necessary
@@ -55,9 +54,15 @@ class DEE2:
 
         self.species = None
         self.data_set = None
+        self.col = None
+        self.counts = None
 
         self.metadata = NULL
         self.outfile = NULL
+
+        self._check_species(self.species)
+        self._check_counts(self.counts)
+        self._check_cols(self.col)
 
     @staticmethod
     def _supress_r_warnings():
@@ -74,23 +79,26 @@ class DEE2:
 
         rpy2.rinterface_lib.callbacks.consolewrite_warnerror = no_callback
 
-    def _check_species(self, species: str) -> bool:
+    def _check_species(self, species: [None, str]) -> bool:
         return self._check_values(species, valid_species)
 
-    def _check_cols(self, col: str) -> bool:
+    def _check_cols(self, col: [None, str]) -> bool:
         return self._check_values(col, valid_cols)
 
-    def _check_counts(self, count: str) -> bool:
+    def _check_counts(self, count: [None, str]) -> bool:
         return self._check_values(count, valid_counts)
 
     @staticmethod
-    def _check_values(data: str, data_set: set) -> bool:
+    def _check_values(data: str, data_set: set) -> [None, bool]:
         """
         Provides a way to validate function arguments against known values. Helps keep DRY.
         :param data: value to check against 'data_set'
         :param data_set: Set datatype which contains valid values
         :return: True or False depending on existence of data in data_set
         """
+        if data is None:
+            return None
+
         if data not in data_set:
             print(f'''
             Provided value {data} is not found in the list. Check spelling and try again.
@@ -142,13 +150,6 @@ class DEE2:
         species = self.species or species
         metadata = self.metadata or metadata
         outfile = self.outfile or outfile
-
-        # TODO add instance level counts
-        if not self._check_counts(counts):
-            return None
-
-        if not self._check_species(species):
-            return None
 
         get_dee2 = robjects.r['getDEE2']
         srr_vector = self.convert_to_srr_vector() or srr_vector
@@ -204,16 +205,6 @@ class DEE2:
 
         species = self.species or species
 
-        if not self._check_species(species):
-            return None
-
-        if not self._check_cols(col):
-            return None
-
-        # TODO add instance level counts
-        if not self._check_counts(counts):
-            return None
-
         get_dee2_bundles = robjects.r['getDEE2_bundle']
 
         srr_vector = self.convert_to_srr_vector() or srr_vector
@@ -237,9 +228,6 @@ class DEE2:
         species = self.species or species
         outfile = self.outfile or outfile
 
-        if not self._check_species(species):
-            return None
-
         get_dee2_metadata = robjects.r['getDEE2Metadata']
 
         data = get_dee2_metadata(species, outfile)
@@ -257,9 +245,6 @@ class DEE2:
         :returns: a table of project bundles available at DEE2.io/huge
         """
         species = self.species or species
-
-        if not self._check_species(species):
-            return None
 
         bundles = robjects.r['list_bundles']
 
@@ -292,10 +277,6 @@ class DEE2:
         Since the getDEE2 R functions: se, Tx2Gene and srx_agg all have the same arguments
         it makes sense to use a single function to call any of the 3 above.
         """
-
-        # TODO add instance level counts
-        if not self._check_counts(counts):
-            return None
 
         get_dee2 = self.getDEE2(legacy=TRUE) or get_dee2
 
@@ -437,12 +418,6 @@ class DEE2:
         """
         species = self.species or species
 
-        if not self._check_species(species):
-            return None
-
-        if not self._check_cols(col):
-            return None
-
         query_bundles = robjects.r['query_bundles']
 
         srr_vector = self.convert_to_srr_vector() or srr_vector
@@ -467,9 +442,6 @@ class DEE2:
         species = self.species or species
         srr_vector = self.convert_to_srr_vector() or srr_vector
         metadata = self.metadata or metadata
-
-        if not self._check_species(species):
-            return None
 
         query_dee2 = robjects.r['queryDEE2']
 
