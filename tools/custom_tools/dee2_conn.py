@@ -1,4 +1,3 @@
-import rpy2.rinterface
 from rpy2.robjects.packages import importr
 from rpy2 import robjects
 from rpy2.robjects.vectors import ListVector, BoolVector, DataFrame
