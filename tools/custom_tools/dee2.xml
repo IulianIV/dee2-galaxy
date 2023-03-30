@@ -24,21 +24,6 @@
         #end if
 
         python '$__tool_directory__/dee2.py' '$selector' '$data_set' '$species' '$zip_name' '$aux_function' '$aux_func_zip'
-<!--        -->
-<!--        python '$__tool_directory__/dee2.py'-->
-<!--        #if $data_set_type.search_by_selector == "accession"-->
-<!--            #if $write_to_file.do_write == "true"-->
-<!--            'accession' '$data_set_type.accession_numbers' '$species' '$write_to_file.zip_name'-->
-<!--            #else-->
-<!--            'accession' '$data_set_type.accession_numbers' '$species' '$write_to_file.do_write' '$aux_func.zip_funcs'-->
-<!--            #end if-->
-<!--        #else-->
-<!--            #if $write_to_file.do_write == "true"-->
-<!--            'keyword' '$data_set_type.keyword_search' '$species' '$write_to_file.zip_name'-->
-<!--            #else-->
-<!--            'keyword' '$data_set_type.keyword_search' '$species' '$write_to_file.do_write'-->
-<!--            #end if-->
-<!--        #end if-->
     </command>
     <inputs>
         <param name="species" type="select" label="Organism of interest">
