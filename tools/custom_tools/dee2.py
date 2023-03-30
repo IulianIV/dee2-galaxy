@@ -8,48 +8,39 @@ def stop_err(msg):
 
 
 def main():
-    selector, data_set, species = '', '', ''
+    selector, data_set, species, out_file, load_funcs, load_func_zip = '', '', '', '', '', ''
+    load_func = ''
 
     try:
         selector = sys.argv[1]
         data_set = sys.argv[2]
         species = sys.argv[3]
+        out_file = sys.argv[4]
+        load_funcs = sys.argv[5]
+        load_func_zip = sys.argv[6]
         # use this variable to grab a getDEE2 function selected from galaxy
         # function = sys.argv[4]
 
     except Exception:
         stop_err("Usage: python dee2.py data_set_type species")
 
-    if selector == 'accession':
+    dee2 = DEE2(supress_r_warnings=False)
 
-        dee2 = DEE2(supress_r_warnings=False)
+    dee2.data_set = data_set
+    dee2.species = species
 
-        dee2.data_set = data_set
-        dee2.species = species
+    if out_file != 'false':
+        dee2.outfile = out_file
 
-        # query = dee2.queryDEE2()
-        get_dee2 = dee2.getDEE2()
-        print(f'final results: {get_dee2}')
+    if load_funcs != 'false':
+        try:
+            load_func = getattr(dee2, load_funcs)(load_func_zip)
+        except AttributeError:
+            return print("Called load function does not exist.")
+
+    get_dee2 = dee2.queryDEE2()
+    print(f'final results:\n{get_dee2}')
 
 
 if __name__ == '__main__':
     main()
-
-# library('getDEE2')
-# lsf.str("package:getDEE2")
-# ls("package:getDEE2")
-# bundles <- list_bundles("celegans")
-# bundles
-# browseVignettes("getDEE2")
-# # if a species name is wrong, it throws error and examples of species
-# mdat <- getDEE2Metadata("celegans")
-# head(mdat)
-#
-# mdat1 <- mdat[which(mdat$SRP_accession %in% "SRP009256"),]
-# type(mdat)
-# SRRvec <- as.vector(mdat1$SRR_accession)
-# SRRvec
-#
-# suppressPackageStartupMessages(library("SummarizedExperiment"))
-# x <- getDEE2("celegans",SRRvec,metadata=mdat,counts="GeneCounts")
-
