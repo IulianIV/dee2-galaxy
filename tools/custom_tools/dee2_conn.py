@@ -11,10 +11,6 @@ from rpy2.rinterface import NULL
 # TODO Add type hints too all functions and arguments if necessary
 # TODO check this situation that occurs on multiple functions
 #  @param ... Additional parameters to be passed to download.file.
-# TODO It seems to be specific on situations where it requires SRRVector
-#   as far as I can tell, when passing a SRR Vector it cant be passed with a single value.
-#   Nonetheless, it seems that there are places where "query" is required, which is similar to SRRVector
-#   but I think single values can be placed.
 # TODO test all `load` functions against a downloaded zip file
 # TODO when the users passes a path to to output file check if that path exists, otherwise create it. Add this info
 #   as tip at `.xml` file level
