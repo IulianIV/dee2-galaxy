@@ -1,29 +1,53 @@
 <tool id="dee2" name="DEE2" versino="0.1.0">
     <description>Galaxy implementation</description>
-    <command>
-        #set selector = $data_set_type.search_by_selector
+    <command detect_errors="exit_code">
+        python '$__tool_directory__/dee2.py'
 
+        -s '$species'
+
+        #set $selector = $data_set_type.search_by_selector
+
+        ## Additional function enablers
+        #set $std_enabled = $functions.standard_functions.std_funcs
+        #set $adv_enabled = $functions.advanced_functions.adv_func
+        #set $loader_enabled = $functions.results_loader.aux_funcs
+        #set $write_outfile = $write_to_file.do_write
+
+        ## Argument setters
+        #set $function = 'getDEE2'
+        #set $infile = $adv_parameters.dee2_zip
+        #set $outfile = 'false'
+
+        ## Main search type variable setter
         #if $selector == "accession"
-        #set data_set = $data_set_type.accession_numbers
+        #set $data_set = $data_set_type.accession_numbers
         #else
-        #set data_set = $data_set_type.keyword_search
+        #set $data_set = $data_set_type.keyword_search
         #end if
 
-        #set zip_name = 'false'
+        -d '$data_set'
 
-        #if $write_to_file.do_write == "true"
-        #set zip_name = $write_to_file.zip_name
+        #if $std_enabled == 'true'
+        #set $function = $functions.standard_functions.std_funcs
+        -t 'std'
+        #elif $adv_enabled == 'true'
+        #set $function = $functions.advanced_functions.adv_funcs
+        -t 'adv'
+        #elif $loader_enabled == 'true'
+        #set $function = $functions.results_loader.zip_funcs
+        -t 'loader'
         #end if
 
-        #set aux_function = 'false'
-        #set aux_func_zip = 'false'
+        -f '$function' -i '$infile'
 
-        #if $results_manipulators.aux_funcs == 'true'
-        #set aux_function = $results_loader.aux_func.zip_funcs
-        #set aux_func_zip = $results_loader.aux_func.load_func_zip
+        ## Left at the end because this can be used for any other function.
+
+
+        #if $write_outfile == "true"
+        #set $outfile = $write_to_file.zip_name
         #end if
 
-        python '$__tool_directory__/dee2.py' '$selector' '$data_set' '$species' '$zip_name' '$aux_function' '$aux_func_zip'
+        -o '$outfile'
     </command>
     <inputs>
         <param name="species" type="select" label="Organism of interest">
@@ -44,140 +68,88 @@
             </param>
             <when value="accession">
                 <param name="accession_numbers" type="text" value="GSE63462,SRP070529,SRR401430"
-                       label="Accession number"
+                       label="Accession number" optional="false"
                        help="Multiple accessions can be separated by commas. Try GSE63462,SRP070529,SRR401430 for A. thaliana"/>
             </when>
             <when value="keyword">
-                <param name="keyword_search" type="text" value="ethanol"
+                <param name="keyword_search" type="text" value="ethanol" optional="false"
                        label="Keyword" help="Case-insensitive. Try 'ethanol' for S. cerevisiae"/>
             </when>
         </conditional>
+        <section name="adv_parameters" title="Set advanced parameters"
+                 help="Some of these parameters are mandatory for some selectable functions. Read more info below.">
+            <param name="col" type="select" label="Column" help="Column name to filter by">
+                <option value="SRP_accession" selected="true">SRP_accession: SRA project accession
+                </option>
+                <option value="GSE_accession">GSE_accession: GEO series accession</option>
+            </param>
+            <param format="tabular" name="bundle" type="data" optional="true"
+                   label="Bundle table" help="Optional. Will auto-grab if missing."/>
+            <param name="counts" type="select" label="Counts">
+                <option value="GeneCounts" selected="true">GeneCounts: STAR gene level counts
+                </option>
+                <option value="TxCounts">TxCounts: Kallisto transcript counts</option>
+                <option value="Tx2Gene">Tx2Gene: Kallisto counts aggregated (by sum) on gene
+                </option>
+            </param>
+            <param name="legacy" type="boolean" label="Legacy mode"/>
+            <param name="url" type="text" value=""
+                   label="Base URL" help="Set for dee2.io. See tips for help."/>
+            <param format="zip" name="dee2_zip" type="data" label="DEE2 zip"
+                   help="DEE2 zip file missing? See tip below"/>
+        </section>
+        <section name="functions" title="Other DEE2 Functions">
+            <conditional name="standard_functions">
+                <param name="std_funcs" type="boolean" label="Show standard functions"/>
+                <when value="true">
+                    <param name="std_funcs" type="select" label="Standard functions">
+                        <option value="getDEE2_bundle" selected="true">Fetch gene expression data</option>
+                        <option value="getDEE2Metadata">Get organism Metadata</option>
+                        <option value="list_bundles">Completed DEE2 projects</option>
+                        <option value="query_bundles">Query bundle existence</option>
+                        <option value="queryDEE2">Query Dataset availability</option>
+                    </param>
+                </when>
+            </conditional>
+            <conditional name="advanced_functions">
+                <param name="adv_func" type="boolean" label="See advanced functions"/>
+                <when value="true">
+                    <param name="adv_funcs" type="select" label="Advanced functions">
+                        <option value="se" selected="true">Create summarizedExperiment object</option>
+                        <option value="srx_agg">Summarized run data to experiments</option>
+                        <option value="Tx2Gene">Aggregate Transcript Counts to Gene-Level Counts</option>
+                    </param>
+                </when>
+            </conditional>
+            <conditional name="results_loader">
+                <param name="aux_funcs" type="boolean" label="See result loader functions   "/>
+                <when value="true">
+                    <param name="zip_funcs" type="select" label="Result loader functions">
+                        <option value="loadFullMeta" selected="true">Load Full Meta</option>
+                        <option value="loadGeneCounts">Load Gene Counts</option>
+                        <option value="loadGeneInfo">Load Gene Info</option>
+                        <option value="loadQcMx">Load Quality Control Info</option>
+                        <option value="loadSummaryMeta">Load Summary Meta</option>
+                        <option value="loadTxCounts">Load Transcript Counts</option>
+                        <option value="loadTxInfo">Load Transcript Info</option>
+                    </param>
+                </when>
+            </conditional>
+        </section>
         <conditional name="write_to_file">
-            <param name="do_write" type="boolean" label="Write results to file" />
+            <param name="do_write" type="boolean" label="Write results to file"/>
             <when value="false">
             </when>
             <when value="true">
                 <param name="zip_name" type="text" value="dee2_results" label="Zip name to save files to"
-                help="'zip_name' or 'your/path/to/zip_name''. See tip below for more info."/>
+                       help="'zip_name' or 'your/path/to/zip_name''. See tip below for more info."/>
             </when>
         </conditional>
-        <section name="functions" title="Function Selector" help="Selector for all DEE2 Functions">
-            <conditional name="standard_functions">
-                <param name="std_funcs" type="boolean" label="Standard functions" />
-                <when value="true">
-                    <section name="std_func" title="Standard functions" help="Standard DEE2 functions">
-                        <conditional name="standard_functions">
-                            <param name="std_funcs" type="select" label="Functions">
-                                <option value="getDEE2_bundle" selected="true">Fetch gene expression data</option>
-                                <option value="getDEE2Metadata">Get organism Metadata</option>
-                                <option value="list_bundles">Completed DEE2 projects</option>
-                                <option value="query_bundles">Query bundle existence</option>
-                                <option value="queryDEE2"> Query Dataset availability</option>
-                            </param>
-                            <when value="getDEE2_bundle">
-                                <param name="cols" type="select" label="Columns">
-                                    <option value="SRP_accession" selected="true">SRP_accession: SRA project accession</option>
-                                    <option value="GSE_accession">GSE_accession: GEO series accession</option>
-                                </param>
-                                <param format="tabular" name="bundle" type="data" optional="true"
-                                       label="Bundle table" help="Optional. Will auto-grab if missing."/>
-                                <param name="counts" type="select" label="Counts">
-                                    <option value="GeneCounts" selected="true">GeneCounts: STAR gene level counts</option>
-                                    <option value="TxCounts">TxCounts: Kallisto transcript counts</option>
-                                    <option value="Tx2Gene">Tx2Gene: Kallisto counts aggregated (by sum) on gene</option>
-                                </param>
-                                <param name="legacy" type="select" label="Legacy" help="Return data in legacy format. See tips for help.">
-                                    <option value="false" selected="true">FALSE</option>
-                                    <option value="true">TRUE</option>
-                                </param>
-                                <param name="url" type="text" value=""
-                                       label="Base URL" help="Set for dee2.io. See tips for help."/>
-                            </when>
-                            <when value="getDEE2Metadata">
-                                <param name="metazip_name" type="text" value="meta_results" label="Zip name to save files to"
-                                       help="'metazip_name' or 'your/path/to/metazip_name''. See tip below for more info."/>
-                            </when>
-                            <when value="list_bundles">
-                                <conditional name="write_to_file">
-                                    <param name="do_write" type="boolean" label="Write results to file" />
-                                    <when value="false">
-                                    </when>
-                                    <when value="true">
-                                        <param name="bundle_zip" type="text" value="bundle_results"
-                                               label="Zip name to save files to"
-                                        help="'bundle_zip' or 'your/path/to/bundle_zip''. See tip below for more info."/>
-                                    </when>
-                                </conditional>
-                            </when>
-                            <when value="query_bundles">
-                                <param name="cols" type="select" label="Columns">
-                                    <option value="SRP_accession" selected="true">SRP_accession: SRA project accession</option>
-                                    <option value="GSE_accession">GSE_accession: GEO series accession</option>
-                                </param>
-                                <param format="tabular" name="bundle" type="data" optional="true"
-                                       label="Bundle table" help="Optional. Will auto-grab if missing."/>
-                            </when>
-                            <when value="queryDEE2">
-                                <param format="zip" name="metadata_zip" type="data"
-                                       label="Metadata zip" help="DEE2 Metadata zip file missing? See tip below"/>
-                            </when>
-                        </conditional>
-                    </section>
-                </when>
-            </conditional>
-            <conditional name="advanced_functions">
-                <param name="adv_func" type="boolean" label="Advanced functions" />
-                <when value="true">
-                     <section name="adv_funcs" title="Advanced functions" help="These functions run a DEE2 instance in the background">
-                        <conditional name="advanced_functions">
-                                <param name="adv_funcs" type="select" label="Functions">
-                                    <option value="se" selected="true">Create summarizedExperiment object</option>
-                                    <option value="srx_agg">Summarized run data to experiments</option>
-                                    <option value="Tx2Gene">Aggregate Transcript Counts to Gene-Level Counts</option>
-                                </param>
-                                <when value="se">
-                                    <param name="counts" type="select" label="Counts">
-                                        <option value="GeneCounts" selected="true">GeneCounts: STAR gene level counts</option>
-                                        <option value="TxCounts">TxCounts: Kallisto transcript counts</option>
-                                        <option value="Tx2Gene">Tx2Gene: Kallisto counts aggregated (by sum) on gene</option>
-                                    </param>
-                                </when>
-                                <when value="srx_agg">
-                                    <param name="counts" type="select" label="Counts">
-                                        <option value="GeneCounts" selected="true">GeneCounts: STAR gene level counts</option>
-                                        <option value="TxCounts">TxCounts: Kallisto transcript counts</option>
-                                        <option value="Tx2Gene">Tx2Gene: Kallisto counts aggregated (by sum) on gene</option>
-                                    </param>
-                                </when>
-                                <when value="Tx2Gene">
-                                </when>
-                        </conditional>
-                    </section>
-                </when>
-            </conditional>
-            <conditional name="results_loader">
-                <param name="aux_funcs" type="boolean" label="Results loader" />
-                <when value="true">
-                    <section name="aux_func" title="Results loaders" help="These can only be run on DEE2 zip files">
-                        <param format="zip" name="load_func_zip" type="data" label="DEE2 zip" help="DEE2 zip file missing? See tip below"/>
-                        <param name="zip_funcs" type="select" label="Functions">
-                            <option value="loadFullMeta" selected="true">Load Full Meta</option>
-                            <option value="loadGeneCounts">Load Gene Counts</option>
-                            <option value="loadGeneInfo">Load Gene Info</option>
-                            <option value="loadQcMx">Load Quality Control Info</option>
-                            <option value="loadSummaryMeta">Load Summary Meta</option>
-                            <option value="loadTxCounts">Load Transcript Counts</option>
-                            <option value="loadTxInfo">Load Transcript Info</option>
-                        </param>
-                    </section>
-                </when>
-            </conditional>
-        </section>
     </inputs>
     <outputs>
         <data format_source="dee2_zip" name="dee2_results" metadata_source="dee2_zip"/>
     </outputs>
-    <help>
+    <help><![CDATA[
 .. _NCBI Sequence Read Archive: http://www.ncbi.nlm.nih.gov/sra
 .. _GEO: http://www.ncbi.nlm.nih.gov/geo/
 .. _SRA: http://www.ncbi.nlm.nih.gov/sra
@@ -220,7 +192,7 @@ Browse the metadata catalogue here_.
 
 Can't find your project of interest in our dataset? Try requesting a SRA project to be added to the express
 queue here (experimental_).
-    </help>
+    ]]></help>
     <citations>
         <citation type="doi">https://doi.org/10.1093/gigascience/giz022</citation>
     </citations>
