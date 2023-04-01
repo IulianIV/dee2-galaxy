@@ -1,5 +1,30 @@
 import sys
+import argparse
 from dee2_conn import DEE2
+
+# TODO for each selectable function in dee2.xml add a help attribute to mention what attributes should be set for it
+#   to properly work
+# TODO create a more comprehensive help section for CLI functions.
+
+parser = argparse.ArgumentParser(
+    description='getDEE2 R package wrapper. Can run getDEE2 functions provided the right arguments')
+parser.add_argument('-f', '--function', metavar='', help='name of functions to run.')
+parser.add_argument('-t', '--type', metavar='', help='Type of function. Makes processing easier')
+parser.add_argument('-s', '--species', metavar='', help='Organism of interest to search for.')
+parser.add_argument('-d', '--dataset', metavar='', help='Accession numbers or keyword.')
+parser.add_argument('-o', '--outfile', metavar='', help='Output file name.')
+parser.add_argument('-i', '--infile', metavar='', help='Infile file name.')
+parser.add_argument('-col', '--column', metavar='', help='Column to query.')
+parser.add_argument('-b', '--bundle', metavar='', help='Bundles file to use.')
+parser.add_argument('-m', '--metadata', metavar='', help='Metadata file to use.')
+parser.add_argument('-c', '--counts', metavar='', help='Counts to filter by.')
+parser.add_argument('--legacy', action='store_true', help='Use legacy mode.')
+parser.add_argument('--set-base-url', metavar='', help='Changes the base URL to fetch data from.')
+parser.add_argument('--enable-debugging', action='store_true',
+                    help='Enables a limited debugger to see the R console results')
+
+parser.add_argument_group()
+args = parser.parse_args()
 
 
 def stop_err(msg):
@@ -8,38 +33,54 @@ def stop_err(msg):
 
 
 def main():
-    selector, data_set, species, out_file, load_funcs, load_func_zip = '', '', '', '', '', ''
-    load_func = ''
+    function = args.function
+    type_ = args.type
+    species = args.species
+    dataset = args.dataset
+    outfile = args.outfile
+    infile = args.infile
+    column = args.column
+    bundle = args.bundle
+    metadata = args.metadata
+    counts = args.counts
+    legacy = args.legacy
+    url = args.set_base_url
+    debugging = args.enable_debugging
 
-    try:
-        selector = sys.argv[1]
-        data_set = sys.argv[2]
-        species = sys.argv[3]
-        out_file = sys.argv[4]
-        load_funcs = sys.argv[5]
-        load_func_zip = sys.argv[6]
-        # use this variable to grab a getDEE2 function selected from galaxy
-        # function = sys.argv[4]
+    dee2 = DEE2(supress_r_warnings=True)
 
-    except Exception:
-        stop_err("Usage: python dee2.py data_set_type species")
-
-    dee2 = DEE2(supress_r_warnings=False)
-
-    dee2.data_set = data_set
+    dee2.data_set = dataset
     dee2.species = species
 
-    if out_file != 'false':
-        dee2.outfile = out_file
+    if outfile != 'false':
+        dee2.outfile = outfile
 
-    if load_funcs != 'false':
+    if function == 'getDEE2':
+        data = dee2.getDEE2()
+        print(data)
+
+    if type_ == 'loader':
         try:
-            load_func = getattr(dee2, load_funcs)(load_func_zip)
+            load_func = getattr(dee2, function)(infile)
+            print(load_func)
         except AttributeError:
             return print("Called load function does not exist.")
 
-    get_dee2 = dee2.queryDEE2()
-    print(f'final results:\n{get_dee2}')
+    # print(f'''
+    # All Args:
+    # function: {function}
+    # species: {species}
+    # dataset: {dataset}
+    # outfile: {outfile}
+    # infile: {infile}
+    # column: {column}
+    # bundle: {bundle}
+    # metadata: {metadata}
+    # counts: {counts}
+    # legacy: {legacy}
+    # url: {url}
+    # debugging: {debugging}
+    # ''')
 
 
 if __name__ == '__main__':
