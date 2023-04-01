@@ -15,6 +15,10 @@ from rpy2.rinterface import NULL
 #   as tip at `.xml` file level
 # TODO adding out files from the input does not seem to save any files... might be because of Galaxy itself
 #   try and see if the file can be saved in history then downloaded
+# TODO Use Cheetah Documentation to develop on the .xml file <command> section/
+#   Create functions and other flow controls to manage the different getDEE2 front-end
+#   choices
+# TODO for future use: maybe recreate the whole script + the Cheetah template to be compatible with CLI args?
 
 # Set of valid species recognized by dee2.io
 valid_species = {'athaliana', 'celegans', 'dmelanogaster', 'drerio', 'ecoli',
