@@ -1,6 +1,6 @@
 from rpy2.robjects.packages import importr
 from rpy2 import robjects
-from rpy2.robjects.vectors import ListVector, BoolVector, DataFrame
+from rpy2.robjects.vectors import ListVector, BoolVector, DataFrame, StrSexpVector
 from rpy2.robjects.methods import RS4
 from rpy2.rinterface import NULL
 
@@ -11,7 +11,7 @@ from rpy2.rinterface import NULL
 # TODO check this situation that occurs on multiple functions
 #  @param ... Additional parameters to be passed to download.file.
 # TODO test all `load` functions against a downloaded zip file
-# TODO when the users passes a path to to output file check if that path exists, otherwise create it. Add this info
+# TODO when the users pass a path to to output file check if that path exists, otherwise create it. Add this info
 #   as tip at `.xml` file level
 # TODO adding out files from the input does not seem to save any files... might be because of Galaxy itself
 #   try and see if the file can be saved in history then downloaded
@@ -19,6 +19,26 @@ from rpy2.rinterface import NULL
 #   Create functions and other flow controls to manage the different getDEE2 front-end
 #   choices
 # TODO for future use: maybe recreate the whole script + the Cheetah template to be compatible with CLI args?
+# TODO choosing to save as a zip file has no connection, or should not have any, to the actual output.
+#   the output of the functions, depending on the case should be converted to specific format so that
+#   they can be used further along in galaxy.
+#   For example: Loader functions almost always print tables. getDEE2 prints a summerizedExperiment object
+#   what should that be converted to?
+# TODO to provide a good workflow and to understand how the data should be processed follow the tutorial
+#   from getDEE2 R Vignettes.
+#   transform the data to make it compatible in galaxy workflow as well with other R tools from galaxy
+#   such as edgeR or DESeq2
+# TODO Legacy mode seems to do things differently. Treat that at the end, the main functions being the
+#   priority.
+# TODO the "bundles" functions seem to be related to already run getDEE2 functions. Literal experiments run
+#   beforehand. This could be suggested to the user. To first List available bundles or query for an existing one
+#   then download it and use it as is.
+
+# TODO to increase usability try to implement "auto-workflows". For example instead of suggesting to the user
+#   to try and grab the getDEE2Metadata and then run the getDEE2 function, have them provide species, query, col
+#   and counts and automatically print out an existing bundle.
+#   basically it would auto-run getDEE2_bundle.
+
 
 # Set of valid species recognized by dee2.io
 valid_species = {'athaliana', 'celegans', 'dmelanogaster', 'drerio', 'ecoli',
@@ -107,18 +127,15 @@ class DEE2:
         else:
             return True
 
-    def convert_to_srr_vector(self, data: [str, None] = None) -> ListVector:
-        splitter = robjects.r['strsplit']
-        combine = robjects.r['c']
-
+    def convert_to_srr_vector(self, data: [str, None] = None) -> StrSexpVector:
         data = self.data_set or data
 
-        srr_split = splitter(data, split=',')
-        srr_vector = combine(srr_split)
+        data = tuple(data.split(','))
+        data = StrSexpVector(data)
 
-        # because we pass a list, the vector itself becomes part of a list, such as [[1]]
-        # to grab it correctly the first index must be accessed
-        return srr_vector[0]
+        srr_vector = data
+
+        return srr_vector
 
     def getDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, counts: str = 'GeneCounts',
                 metadata=NULL, outfile: [str, NULL] = NULL,
@@ -166,6 +183,7 @@ class DEE2:
     # TODO edit out the srr_vector, add and validate it as single string and in the front-end, when this function
     #   is chosen show a text saying that from the data_set input ONLY THE FIRST value will be kept and that it only
     #   accepts single values. At the moment tests will be done as is.
+    # TODO Convert the summerizedExperiment R object to something more pytho or galaxy compatible.
     def getDEE2_bundle(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
                        bundles=NULL, counts: str = 'GeneCounts', legacy=FALSE,
                        base_url: str = "http://dee2.io/huge/") -> [None, RS4]:

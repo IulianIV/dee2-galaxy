@@ -79,6 +79,7 @@
         <section name="adv_parameters" title="Set advanced parameters"
                  help="Some of these parameters are mandatory for some selectable functions. Read more info below.">
             <param name="col" type="select" label="Column" help="Column name to filter by">
+                <option value="false" selected="true">No selection</option>
                 <option value="SRP_accession" selected="true">SRP_accession: SRA project accession
                 </option>
                 <option value="GSE_accession">GSE_accession: GEO series accession</option>
@@ -86,6 +87,7 @@
             <param format="tabular" name="bundle" type="data" optional="true"
                    label="Bundle table" help="Optional. Will auto-grab if missing."/>
             <param name="counts" type="select" label="Counts">
+                <option value="false" selected="true">No selection</option>
                 <option value="GeneCounts" selected="true">GeneCounts: STAR gene level counts
                 </option>
                 <option value="TxCounts">TxCounts: Kallisto transcript counts</option>
@@ -95,7 +97,7 @@
             <param name="legacy" type="boolean" label="Legacy mode"/>
             <param name="url" type="text" value=""
                    label="Base URL" help="Set for dee2.io. See tips for help."/>
-            <param format="zip" name="dee2_zip" type="data" label="DEE2 zip"
+            <param format="zip" name="dee2_zip" type="data" label="get  DEE2 zip" optional="true"
                    help="DEE2 zip file missing? See tip below"/>
         </section>
         <section name="functions" title="Other DEE2 Functions">
@@ -103,7 +105,7 @@
                 <param name="std_funcs" type="boolean" label="Show standard functions"/>
                 <when value="true">
                     <param name="std_funcs" type="select" label="Standard functions">
-                        <option value="getDEE2_bundle" selected="true">Fetch gene expression data</option>
+                        <option value="getDEE2_bundle">Fetch gene expression data</option>
                         <option value="getDEE2Metadata">Get organism Metadata</option>
                         <option value="list_bundles">Completed DEE2 projects</option>
                         <option value="query_bundles">Query bundle existence</option>
@@ -122,7 +124,7 @@
                 </when>
             </conditional>
             <conditional name="results_loader">
-                <param name="aux_funcs" type="boolean" label="See result loader functions   "/>
+                <param name="aux_funcs" type="boolean" label="See result loader functions"/>
                 <when value="true">
                     <param name="zip_funcs" type="select" label="Result loader functions">
                         <option value="loadFullMeta" selected="true">Load Full Meta</option>
@@ -147,7 +149,7 @@
         </conditional>
     </inputs>
     <outputs>
-        <data format_source="dee2_zip" name="dee2_results" metadata_source="dee2_zip"/>
+        <data format_source="tabular" name="results" />
     </outputs>
     <help><![CDATA[
 .. _NCBI Sequence Read Archive: http://www.ncbi.nlm.nih.gov/sra
