@@ -3,31 +3,22 @@ from rpy2 import robjects
 from rpy2.robjects.vectors import ListVector, BoolVector, DataFrame, StrSexpVector
 from rpy2.robjects.methods import RS4
 from rpy2.rinterface import NULL
+from dee2converter import rse2pyse, ConvertedDEE2Object, convert_rdf_to_pd, convert_rse2pyse
 
 
 # TODO All "loadXYZ" functions rely on zipfile processing.
 #   How should the zip file be processed if there is a choice to not save it locally?
-# TODO Add type hints too all functions and arguments if necessary
 # TODO check this situation that occurs on multiple functions
 #  @param ... Additional parameters to be passed to download.file.
-# TODO test all `load` functions against a downloaded zip file
-# TODO when the users pass a path to to output file check if that path exists, otherwise create it. Add this info
+# TODO when the users pass a path to output file check if that path exists, otherwise create it. Add this info
 #   as tip at `.xml` file level
 # TODO adding out files from the input does not seem to save any files... might be because of Galaxy itself
 #   try and see if the file can be saved in history then downloaded
-# TODO Use Cheetah Documentation to develop on the .xml file <command> section/
-#   Create functions and other flow controls to manage the different getDEE2 front-end
-#   choices
-# TODO for future use: maybe recreate the whole script + the Cheetah template to be compatible with CLI args?
 # TODO choosing to save as a zip file has no connection, or should not have any, to the actual output.
 #   the output of the functions, depending on the case should be converted to specific format so that
 #   they can be used further along in galaxy.
-#   For example: Loader functions almost always print tables. getDEE2 prints a summerizedExperiment object
+#   For example: Loader functions almost always print tables. getDEE2 prints a summarizedExperiment object
 #   what should that be converted to?
-# TODO to provide a good workflow and to understand how the data should be processed follow the tutorial
-#   from getDEE2 R Vignettes.
-#   transform the data to make it compatible in galaxy workflow as well with other R tools from galaxy
-#   such as edgeR or DESeq2
 # TODO Legacy mode seems to do things differently. Treat that at the end, the main functions being the
 #   priority.
 # TODO the "bundles" functions seem to be related to already run getDEE2 functions. Literal experiments run
@@ -38,6 +29,9 @@ from rpy2.rinterface import NULL
 #   to try and grab the getDEE2Metadata and then run the getDEE2 function, have them provide species, query, col
 #   and counts and automatically print out an existing bundle.
 #   basically it would auto-run getDEE2_bundle.
+
+# TODO some functions now have decorators to handle conversion of data. What is the situation when different
+#   modes are accessed, such as "legacy=TRUE"?
 
 
 # Set of valid species recognized by dee2.io
@@ -137,9 +131,10 @@ class DEE2:
 
         return srr_vector
 
+    @convert_rse2pyse
     def getDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, counts: str = 'GeneCounts',
                 metadata=NULL, outfile: [str, NULL] = NULL,
-                legacy=FALSE, base_url='http://dee2.io/cgi-bin/request.sh?') -> [None, RS4]:
+                legacy=FALSE, base_url='http://dee2.io/cgi-bin/request.sh?') -> [None, ConvertedDEE2Object]:
         """
         Runs the getDEE2() R function from getDEE2 R package.
 
@@ -173,7 +168,6 @@ class DEE2:
         return data
 
     # TODO bundles is expected to be a table how to pass this to R from Python if previously generated?
-    # TODO Check which counts can be added
     # TODO col needs to be selected from Galaxy and passed on. Adding it as class attribute does not make sense
     #   in this case
     # TODO col will have to be replaced with None after the previous TODO is done
@@ -183,10 +177,10 @@ class DEE2:
     # TODO edit out the srr_vector, add and validate it as single string and in the front-end, when this function
     #   is chosen show a text saying that from the data_set input ONLY THE FIRST value will be kept and that it only
     #   accepts single values. At the moment tests will be done as is.
-    # TODO Convert the summerizedExperiment R object to something more pytho or galaxy compatible.
+    @convert_rse2pyse
     def getDEE2_bundle(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
                        bundles=NULL, counts: str = 'GeneCounts', legacy=FALSE,
-                       base_url: str = "http://dee2.io/huge/") -> [None, RS4]:
+                       base_url: str = "http://dee2.io/huge/") -> [None, ConvertedDEE2Object]:
 
         """
         Runs the getDEE2_bundle() R function from getDEE2 R package.
@@ -251,6 +245,7 @@ class DEE2:
         return data
 
     # TODO what to do here front-end wise when no file is provided? just print it?
+    # TODO add type hints
     def list_bundles(self, species: str = None):
         """
         Runs the list_bundles() R function for getDEE2 R package.
@@ -269,6 +264,7 @@ class DEE2:
         return data
 
     @staticmethod
+    @convert_rdf_to_pd
     def _call_load_functions(func_name: str, zip_name: str = None) -> [str, DataFrame]:
         """
         Makes sure the code respects the DRY principle.
@@ -283,27 +279,6 @@ class DEE2:
         grab_func = robjects.r[func_name]
 
         data = grab_func(zip_name)
-
-        return data
-
-    def _call_get_dee2_dependent(self, func_name: str, get_dee2, counts: str = None):
-        """
-        Makes sure the code respects the DRY principle.
-
-        Since the getDEE2 R functions: se, Tx2Gene and srx_agg all have the same arguments
-        it makes sense to use a single function to call any of the 3 above.
-        """
-
-        get_dee2 = self.getDEE2(legacy=TRUE) or get_dee2
-
-        grab_func = robjects.r[func_name]
-
-        if counts is None:
-            data = grab_func(get_dee2)
-        else:
-            data = grab_func(get_dee2, counts)
-
-        print(f'type of this function: {type(data)}')
 
         return data
 
@@ -463,11 +438,10 @@ class DEE2:
 
         data = query_dee2(species, srr_vector, metadata)
 
-        print(f'type of this function: {type(data)}')
-
         return data
 
-    def se(self, get_dee2: RS4 = None, counts: str = "GeneCounts"):
+    @convert_rse2pyse
+    def se(self, get_dee2: RS4 = None, counts: str = "GeneCounts") -> [None, ConvertedDEE2Object]:
         """
         Runs the se() R function from getDEE2 R package.
 
@@ -483,10 +457,18 @@ class DEE2:
             Default is "GeneCounts"
         :returns: a SummarizedExperiment object
         """
+        get_dee2 = self.getDEE2(legacy=TRUE) or get_dee2
 
-        return self._call_get_dee2_dependent('se', get_dee2, counts)
+        grab_func = robjects.r['se']
 
-    def srx_agg(self, get_dee2: RS4 = None, counts: str = 'GeneCounts'):
+        counts = self.counts or counts
+
+        data = grab_func(get_dee2, counts)
+
+        return data
+
+    @convert_rdf_to_pd
+    def srx_agg(self, get_dee2: RS4 = None, counts: str = 'GeneCounts') -> [None, DataFrame]:
         """
         Runs the srx_agg() R function from getDEE2 R package.
 
@@ -503,10 +485,18 @@ class DEE2:
         :returns: a dataframe with gene expression data summarized to SRA experiment
             accession numbers rather than run accession numbers.
         """
+        get_dee2 = self.getDEE2(legacy=TRUE) or get_dee2
 
-        return self._call_get_dee2_dependent('srx_agg', get_dee2, counts)
+        grab_func = robjects.r['srx_agg']
 
-    def Tx2Gene(self, get_dee2: RS4 = None):
+        counts = self.counts or counts
+
+        data = grab_func(get_dee2, counts)
+
+        return data
+
+    @convert_rdf_to_pd
+    def Tx2Gene(self, get_dee2: RS4 = None) -> [None, DataFrame]:
         """
         Runs the Tx2Gene() R function from getDEE2 R package.
 
@@ -518,4 +508,10 @@ class DEE2:
         :param get_dee2: a getDEE2 object. Not setting 'legacy' to True breaks the function.
         :returns: a dataframe of gene expression counts.
         """
-        return self._call_get_dee2_dependent('Tx2Gene', get_dee2)
+        get_dee2 = self.getDEE2(legacy=TRUE) or get_dee2
+
+        grab_func = robjects.r['Tx2Gene']
+
+        data = grab_func(get_dee2)
+
+        return data
