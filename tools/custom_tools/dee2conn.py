@@ -1,3 +1,4 @@
+import pandas.core.frame
 from rpy2.robjects.packages import importr
 from rpy2 import robjects
 from rpy2.robjects.vectors import ListVector, BoolVector, DataFrame, StrSexpVector
@@ -130,6 +131,17 @@ class DEE2:
         srr_vector = data
 
         return srr_vector
+
+    @staticmethod
+    def convert_to_csv(dataframe: pandas.core.frame.DataFrame,
+                       outfile, mode: str = 'r', sep: str = ',', **kwargs) -> [str, None]:
+        if len(sep) > 1:
+            raise ValueError('Separator has to be a single character or a length 1 string.')
+
+        with open(outfile, mode, **kwargs) as of:
+            results = dataframe.to_csv(of, sep)
+
+        return results
 
     @convert_rse2pyse
     def getDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, counts: str = 'GeneCounts',
