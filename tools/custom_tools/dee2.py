@@ -1,10 +1,13 @@
 import sys
 import argparse
-from dee2_conn import DEE2
+from dee2conn import DEE2
 
 # TODO for each selectable function in dee2.xml add a help attribute to mention what attributes should be set for it
 #   to properly work
 # TODO create a more comprehensive help section for CLI functions.
+# TODO Learn more about Galaxy ObjectStore: https://galaxyproject.org/admin/objectstore/
+# TODO Redo xml commands and structure as it has been passed through planemo linter
+# TODO Test with planemo
 
 parser = argparse.ArgumentParser(
     description='getDEE2 R package wrapper. Can run getDEE2 functions provided the right arguments')
@@ -47,40 +50,42 @@ def main():
     url = args.set_base_url
     debugging = args.enable_debugging
 
+    print(f'''
+        All Args:
+        function: {function}
+        species: {species}
+        dataset: {dataset}
+        outfile: {outfile}
+        infile: {infile}
+        column: {column}
+        bundle: {bundle}
+        metadata: {metadata}
+        counts: {counts}
+        legacy: {legacy}
+        url: {url}
+        debugging: {debugging}
+        f_type: {type_}
+        ''')
+
     dee2 = DEE2(supress_r_warnings=True)
 
     dee2.data_set = dataset
     dee2.species = species
 
-    if outfile != 'false':
-        dee2.outfile = outfile
-
     if function == 'getDEE2':
-        data = dee2.getDEE2()
-        print(data)
 
-    if type_ == 'loader':
-        try:
-            load_func = getattr(dee2, function)(infile)
-            print(load_func)
-        except AttributeError:
-            return print("Called load function does not exist.")
+        results = dee2.getDEE2().colData.to_pd()
 
-    # print(f'''
-    # All Args:
-    # function: {function}
-    # species: {species}
-    # dataset: {dataset}
-    # outfile: {outfile}
-    # infile: {infile}
-    # column: {column}
-    # bundle: {bundle}
-    # metadata: {metadata}
-    # counts: {counts}
-    # legacy: {legacy}
-    # url: {url}
-    # debugging: {debugging}
-    # ''')
+        csv_file = dee2.convert_to_csv(results, outfile, mode='w', sep='\t')
+
+        return csv_file
+
+    # if type_ == 'loader' and infile is not None:
+    #     try:
+    #         load_func = getattr(dee2, function)(infile)
+    #         return print(load_func)
+    #     except AttributeError:
+    #         return print("Called load function does not exist.")
 
 
 if __name__ == '__main__':
