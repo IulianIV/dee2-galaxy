@@ -21,8 +21,7 @@ class ConvertedDEE2Object(ABC):
     def list_slots(self):
         return f'{type(self).__name__} object slots: {",".join(tuple(self.slotnames()))}'
 
-    @property
-    def to_pd(self):
+    def to_pd(self) -> pandas.core.frame.DataFrame:
         return pd_from_r_df(self)
 
 
