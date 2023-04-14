@@ -1,22 +1,15 @@
-<tool id="dee2" name="DEE2" versino="0.1.0">
+<tool id="dee2" name="DEE2" version="0.1.0">
     <description>Galaxy implementation</description>
-    <command detect_errors="exit_code">
+    <command detect_errors="aggressive">
         python '$__tool_directory__/dee2.py'
 
         -s '$species'
 
         #set $selector = $data_set_type.search_by_selector
 
-        ## Additional function enablers
-        #set $std_enabled = $functions.standard_functions.std_funcs
-        #set $adv_enabled = $functions.advanced_functions.adv_func
-        #set $loader_enabled = $functions.results_loader.aux_funcs
-        #set $write_outfile = $write_to_file.do_write
-
         ## Argument setters
         #set $function = 'getDEE2'
-        #set $infile = $adv_parameters.dee2_zip
-        #set $outfile = 'false'
+        #set $infile = 'false'
 
         ## Main search type variable setter
         #if $selector == "accession"
@@ -27,27 +20,7 @@
 
         -d '$data_set'
 
-        #if $std_enabled == 'true'
-        #set $function = $functions.standard_functions.std_funcs
-        -t 'std'
-        #elif $adv_enabled == 'true'
-        #set $function = $functions.advanced_functions.adv_funcs
-        -t 'adv'
-        #elif $loader_enabled == 'true'
-        #set $function = $functions.results_loader.zip_funcs
-        -t 'loader'
-        #end if
-
-        -f '$function' -i '$infile'
-
-        ## Left at the end because this can be used for any other function.
-
-
-        #if $write_outfile == "true"
-        #set $outfile = $write_to_file.zip_name
-        #end if
-
-        -o '$outfile'
+        -f '$function' -i '$infile' -o "$outfile"
     </command>
     <inputs>
         <param name="species" type="select" label="Organism of interest">
@@ -101,56 +74,38 @@
                    help="DEE2 zip file missing? See tip below"/>
         </section>
         <section name="functions" title="Other DEE2 Functions">
-            <conditional name="standard_functions">
-                <param name="std_funcs" type="boolean" label="Show standard functions"/>
-                <when value="true">
-                    <param name="std_funcs" type="select" label="Standard functions">
-                        <option value="getDEE2_bundle">Fetch gene expression data</option>
-                        <option value="getDEE2Metadata">Get organism Metadata</option>
-                        <option value="list_bundles">Completed DEE2 projects</option>
-                        <option value="query_bundles">Query bundle existence</option>
-                        <option value="queryDEE2">Query Dataset availability</option>
-                    </param>
-                </when>
-            </conditional>
-            <conditional name="advanced_functions">
-                <param name="adv_func" type="boolean" label="See advanced functions"/>
-                <when value="true">
-                    <param name="adv_funcs" type="select" label="Advanced functions">
-                        <option value="se" selected="true">Create summarizedExperiment object</option>
-                        <option value="srx_agg">Summarized run data to experiments</option>
-                        <option value="Tx2Gene">Aggregate Transcript Counts to Gene-Level Counts</option>
-                    </param>
-                </when>
-            </conditional>
-            <conditional name="results_loader">
-                <param name="aux_funcs" type="boolean" label="See result loader functions"/>
-                <when value="true">
-                    <param name="zip_funcs" type="select" label="Result loader functions">
-                        <option value="loadFullMeta" selected="true">Load Full Meta</option>
-                        <option value="loadGeneCounts">Load Gene Counts</option>
-                        <option value="loadGeneInfo">Load Gene Info</option>
-                        <option value="loadQcMx">Load Quality Control Info</option>
-                        <option value="loadSummaryMeta">Load Summary Meta</option>
-                        <option value="loadTxCounts">Load Transcript Counts</option>
-                        <option value="loadTxInfo">Load Transcript Info</option>
-                    </param>
-                </when>
-            </conditional>
+            <param name="std_funcs" type="select" label="Standard functions">
+                <option value="getDEE2_bundle">Fetch gene expression data</option>
+                <option value="getDEE2Metadata">Get organism Metadata</option>
+                <option value="list_bundles">Completed DEE2 projects</option>
+                <option value="query_bundles">Query bundle existence</option>
+                <option value="queryDEE2">Query Dataset availability</option>
+            </param>
+            <param name="adv_func" type="select" label="Advanced functions">
+                <option value="se" selected="true">Create summarizedExperiment object</option>
+                <option value="srx_agg">Summarized run data to experiments</option>
+                <option value="Tx2Gene">Aggregate Transcript Counts to Gene-Level Counts</option>
+            </param>
+            <param name="aux_funcs" type="select" label="Result loader functions">
+                <option value="loadFullMeta" selected="true">Load Full Meta</option>
+                <option value="loadGeneCounts">Load Gene Counts</option>
+                <option value="loadGeneInfo">Load Gene Info</option>
+                <option value="loadQcMx">Load Quality Control Info</option>
+                <option value="loadSummaryMeta">Load Summary Meta</option>
+                <option value="loadTxCounts">Load Transcript Counts</option>
+                <option value="loadTxInfo">Load Transcript Info</option>
+            </param>
         </section>
-        <conditional name="write_to_file">
-            <param name="do_write" type="boolean" label="Write results to file"/>
-            <when value="false">
-            </when>
-            <when value="true">
-                <param name="zip_name" type="text" value="dee2_results" label="Zip name to save files to"
-                       help="'zip_name' or 'your/path/to/zip_name''. See tip below for more info."/>
-            </when>
-        </conditional>
     </inputs>
     <outputs>
-        <data format_source="tabular" name="results" />
+        <data format="tabular" name="outfile" />
     </outputs>
+    <tests>
+        <test>
+            <param name="species" value="ecoli"/>
+            <output name="results" file="outfile" ftype="tabular"/>
+        </test>
+    </tests>
     <help><![CDATA[
 .. _NCBI Sequence Read Archive: http://www.ncbi.nlm.nih.gov/sra
 .. _GEO: http://www.ncbi.nlm.nih.gov/geo/
