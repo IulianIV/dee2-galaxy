@@ -9,6 +9,8 @@ from abc import ABC
 # TODO In se objects, should we go deep enough to also convert assays.data.listData from list to
 #   something more pythonic, to make other attributes, such as 'elementType' accessible?
 # TODO maybe add a choice to not auto-convert to pandas df?
+# TODO see if RS4_AutoType method can be used here. More info:
+#   https://rpy2.github.io/doc/v3.5.x/html/robjects_oop.html#automated-mapping-of-user-defined-classes
 
 
 class ConvertedDEE2Object(ABC):
@@ -71,6 +73,11 @@ def convert_rdf_to_pd(func):
 
     def wrapper(*args, **kwargs):
         results = func(*args, **kwargs)
+
+        print(*kwargs)
+
+        if 'outfile' in kwargs and kwargs['outfile'] is not None:
+            return results
 
         converted = pd_from_r_df(results)
 
