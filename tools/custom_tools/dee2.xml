@@ -7,20 +7,55 @@
 
         #set $selector = $data_set_type.search_by_selector
 
-        ## Argument setters
         #set $function = 'getDEE2'
-        #set $infile = 'false'
 
-        ## Main search type variable setter
-        #if $selector == "accession"
+        ## Search type
+        #if $selector == 'accession'
         #set $data_set = $data_set_type.accession_numbers
         #else
         #set $data_set = $data_set_type.keyword_search
         #end if
-
         -d '$data_set'
 
-        -f '$function' -i '$infile' -o "$outfile"
+        ## Advanced Parameters
+
+        #set $column = $adv_parameters.col
+        -col '$column'
+
+        #set $bundle = $adv_parameters.bundle
+        -b '$bundle'
+
+        #set $counts = $adv_parameters.counts
+        -c '$counts'
+
+        #set $legacy = $adv_parameters.legacy
+        --legacy '$legacy'
+
+        #set $url = $adv_parameters.url
+        --set-base-url '$url'
+
+        ## TODO this needs fixing? The naming sounds off.
+        #set $metadata = $adv_parameters.dee2_zip
+        -m '$metadata'
+
+        #if $functions
+        #set $std_funcs = $functions.std_funcs
+        #set $adv_funcs = $functions.adv_funcs
+        #set $aux_funcs = $functions.aux_funcs
+        #end if
+
+        #if $std_funcs != '':
+            #set $function = $std_funcs
+        #end if
+        #if $adv_funcs != '':
+            #set $function = $adv_funcs
+        #end if
+        #if $aux_funcs != '':
+            #set $function = $aux_funcs
+        #end if
+
+        -f '$function'
+        -o '$outfile'
     </command>
     <inputs>
         <param name="species" type="select" label="Organism of interest">
@@ -70,23 +105,23 @@
             <param name="legacy" type="boolean" label="Legacy mode"/>
             <param name="url" type="text" value=""
                    label="Base URL" help="Set for dee2.io. See tips for help."/>
-            <param format="zip" name="dee2_zip" type="data" label="get  DEE2 zip" optional="true"
-                   help="DEE2 zip file missing? See tip below"/>
+            <param format="zip" name="dee2_zip" type="data" label="DEE2 metadata" optional="true"
+                   help="To shorten load times, upload an already processed DEE2 zip file"/>
         </section>
         <section name="functions" title="Other DEE2 Functions">
-            <param name="std_funcs" type="select" label="Standard functions">
+            <param name="std_funcs" type="select" label="Standard functions" optional="true">
                 <option value="getDEE2_bundle">Fetch gene expression data</option>
                 <option value="getDEE2Metadata">Get organism Metadata</option>
                 <option value="list_bundles">Completed DEE2 projects</option>
                 <option value="query_bundles">Query bundle existence</option>
                 <option value="queryDEE2">Query Dataset availability</option>
             </param>
-            <param name="adv_func" type="select" label="Advanced functions">
+            <param name="adv_funcs" type="select" label="Advanced functions" optional="true">
                 <option value="se" selected="true">Create summarizedExperiment object</option>
                 <option value="srx_agg">Summarized run data to experiments</option>
                 <option value="Tx2Gene">Aggregate Transcript Counts to Gene-Level Counts</option>
             </param>
-            <param name="aux_funcs" type="select" label="Result loader functions">
+            <param name="aux_funcs" type="select" label="Result loader functions" optional="true">
                 <option value="loadFullMeta" selected="true">Load Full Meta</option>
                 <option value="loadGeneCounts">Load Gene Counts</option>
                 <option value="loadGeneInfo">Load Gene Info</option>
@@ -98,7 +133,7 @@
         </section>
     </inputs>
     <outputs>
-        <data format="tabular" name="outfile" />
+        <data format="tabular" name="outfile"/>
     </outputs>
     <tests>
         <test>
