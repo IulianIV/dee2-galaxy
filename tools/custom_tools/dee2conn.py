@@ -4,17 +4,13 @@ from rpy2 import robjects
 from rpy2.robjects.vectors import ListVector, BoolVector, DataFrame, StrSexpVector
 from rpy2.robjects.methods import RS4
 from rpy2.rinterface import NULL
-from dee2converter import rse2pyse, ConvertedDEE2Object, convert_rdf_to_pd, convert_rse2pyse
+from dee2converter import ConvertedDEE2Object, convert_rdf_to_pd, convert_rse2pyse
 
 
 # TODO All "loadXYZ" functions rely on zipfile processing.
 #   How should the zip file be processed if there is a choice to not save it locally?
 # TODO check this situation that occurs on multiple functions
 #  @param ... Additional parameters to be passed to download.file.
-# TODO when the users pass a path to output file check if that path exists, otherwise create it. Add this info
-#   as tip at `.xml` file level
-# TODO adding out files from the input does not seem to save any files... might be because of Galaxy itself
-#   try and see if the file can be saved in history then downloaded
 # TODO choosing to save as a zip file has no connection, or should not have any, to the actual output.
 #   the output of the functions, depending on the case should be converted to specific format so that
 #   they can be used further along in galaxy.
@@ -235,6 +231,8 @@ class DEE2:
 
         return data
 
+    # TODO in galaxy all results must be sent as a file. So, the outfile option would be redundant in galaxy?
+    @convert_rdf_to_pd
     def getDEE2Metadata(self, species: str = None, outfile: [str, NULL] = NULL) -> [None, DataFrame]:
         """
         Runs the getDEE2Metadata() R function for getDEE2 R package.
