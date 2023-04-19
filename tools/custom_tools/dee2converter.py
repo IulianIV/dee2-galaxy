@@ -1,14 +1,11 @@
 import pandas.core.frame
 import rpy2.robjects.vectors
+from rpy2.robjects.vectors import StrVector
 from rpy2.robjects.methods import RS4
 import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
 from abc import ABC
 
-# TODO Auto-convert all results to Pandas DF and add that as typing hints
-# TODO In se objects, should we go deep enough to also convert assays.data.listData from list to
-#   something more pythonic, to make other attributes, such as 'elementType' accessible?
-# TODO maybe add a choice to not auto-convert to pandas df?
 # TODO see if RS4_AutoType method can be used here. More info:
 #   https://rpy2.github.io/doc/v3.5.x/html/robjects_oop.html#automated-mapping-of-user-defined-classes
 
@@ -74,7 +71,11 @@ def convert_rdf_to_pd(func):
     def wrapper(*args, **kwargs):
         results = func(*args, **kwargs)
 
-        print(*kwargs)
+        # TODO Use data from here: https://rpy2.github.io/doc/v3.5.x/html/vector.html#rpy2.robjects.vectors.Array
+        #   to process and parse Matrix and FloatMatrix types.
+        #   They are necessary for srx_agg() to work.
+        # for row in results.rx(True, 1):
+        #     print(row)
 
         if 'outfile' in kwargs and kwargs['outfile'] is not None:
             return results
@@ -93,3 +94,21 @@ def convert_rse2pyse(func):
         return rse2pyse(obj)
 
     return wrapper
+
+
+def convert_query(func):
+
+    def wrapper(*args, **kwargs):
+        obj = func(*args, **kwargs)
+
+        bundle = dict()
+
+        for k, v in obj.items():
+            bundle[k] = [x for x in v]
+
+        bundle_df = pandas.DataFrame.from_dict(bundle)
+
+        return bundle_df
+
+    return wrapper
+

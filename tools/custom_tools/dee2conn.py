@@ -4,17 +4,11 @@ from rpy2 import robjects
 from rpy2.robjects.vectors import ListVector, BoolVector, DataFrame, StrSexpVector
 from rpy2.robjects.methods import RS4
 from rpy2.rinterface import NULL
-from dee2converter import ConvertedDEE2Object, convert_rdf_to_pd, convert_rse2pyse
+from dee2converter import ConvertedDEE2Object, convert_rdf_to_pd, convert_rse2pyse, convert_query
 
-# TODO All "loadXYZ" functions rely on zipfile processing.
-#   How should the zip file be processed if there is a choice to not save it locally?
+
 # TODO check this situation that occurs on multiple functions
 #  @param ... Additional parameters to be passed to download.file.
-# TODO choosing to save as a zip file has no connection, or should not have any, to the actual output.
-#   the output of the functions, depending on the case should be converted to specific format so that
-#   they can be used further along in galaxy.
-#   For example: Loader functions almost always print tables. getDEE2 prints a summarizedExperiment object
-#   what should that be converted to?
 # TODO Legacy mode seems to do things differently. Treat that at the end, the main functions being the
 #   priority.
 # TODO the "bundles" functions seem to be related to already run getDEE2 functions. Literal experiments run
@@ -123,7 +117,10 @@ class DEE2:
         data = self.data_set or data
 
         data = tuple(data.split(','))
-        data = StrSexpVector(data)
+        if len(data) == 1:
+            data = data[0]
+        else:
+            data = StrSexpVector(data)
 
         srr_vector = data
 
@@ -203,20 +200,10 @@ class DEE2:
 
         return data
 
-    # TODO bundles is expected to be a table how to pass this to R from Python if previously generated?
-    # TODO col needs to be selected from Galaxy and passed on. Adding it as class attribute does not make sense
-    #   in this case
-    # TODO col will have to be replaced with None after the previous TODO is done
-    # TODO the 'query' (or in our case the srr_vector) field IS NOT a vector field. It is a standard string
-    #   representing a dataset name. Therefore it only accepts A SINGLE VALUE.
-    #   Converting it to srr_vector is redundant.
-    # TODO edit out the srr_vector, add and validate it as single string and in the front-end, when this function
-    #   is chosen show a text saying that from the data_set input ONLY THE FIRST value will be kept and that it only
-    #   accepts single values. At the moment tests will be done as is.
     @convert_rse2pyse
     def getDEE2_bundle(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
-                       bundles=NULL, counts: str = 'GeneCounts', legacy=FALSE,
-                       base_url: str = "http://dee2.io/huge/") -> [None, ConvertedDEE2Object]:
+                       counts: str = 'GeneCounts', bundles=NULL, legacy=FALSE,
+                       base_url: str = "http://dee2.io/huge/", **kwargs) -> [None, ConvertedDEE2Object]:
 
         """
 
@@ -250,13 +237,13 @@ class DEE2:
         :returns: a Python SummarizedExperiment object.
         """
 
-        data = self.getDEE2_bundle_rs4(species, srr_vector, col, counts, bundles, legacy, base_url)
+        data = self.getDEE2_bundle_rs4(species, srr_vector, col, counts, bundles, legacy, base_url, **kwargs)
 
         return data
 
     def getDEE2_bundle_rs4(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
-                       bundles=NULL, counts: str = 'GeneCounts', legacy=FALSE,
-                       base_url: str = "http://dee2.io/huge/") -> [None, RS4]:
+                           counts: str = 'GeneCounts', bundles=NULL, legacy=FALSE,
+                           base_url: str = "http://dee2.io/huge/", **kwargs) -> [None, RS4]:
 
         """
         Runs the getDEE2_bundle() R function from getDEE2 R package. This function does NOT return a Python Object.
@@ -288,7 +275,7 @@ class DEE2:
             Default is FALSE. Leave this FALSE if you want to receive data as Summarized experiment.
         :param base_url: The base URL of the service. Leave this as the default URL
             unless you want to download from a 3rd party mirror.
-        :returns: a R SummarizedExperiment object.
+        :returns: an R SummarizedExperiment object.
         """
 
         species = self.species or species
@@ -297,13 +284,12 @@ class DEE2:
 
         srr_vector = self.convert_to_srr_vector() or srr_vector
 
-        data = get_dee2_bundles(species, srr_vector, col, counts, bundles, legacy, base_url)
+        data = get_dee2_bundles(species, srr_vector, col, counts, bundles, legacy, base_url, **kwargs)
 
         return data
 
-    # TODO in galaxy all results must be sent as a file. So, the outfile option would be redundant in galaxy?
     @convert_rdf_to_pd
-    def getDEE2Metadata(self, species: str = None, outfile: [str, NULL] = NULL) -> [None, DataFrame]:
+    def getDEE2Metadata(self, species: str = None, outfile: [str, NULL] = NULL, **kwargs) -> [None, DataFrame]:
         """
         Runs the getDEE2Metadata_rs4() R function for getDEE2 R package. Automatically converts to a Pandas DataFrame
 
@@ -316,11 +302,11 @@ class DEE2:
         :returns: a table of metadata.
         """
 
-        data = self.getDEE2Metadata_rs4(species, outfile)
+        data = self.getDEE2Metadata_rs4(species, outfile, **kwargs)
 
         return data
 
-    def getDEE2Metadata_rs4(self, species: str = None, outfile: [str, NULL] = NULL) -> [None, RS4]:
+    def getDEE2Metadata_rs4(self, species: str = None, outfile: [str, NULL] = NULL, **kwargs) -> [None, RS4]:
         """
         Runs the getDEE2Metadata() R function for getDEE2 R package. This function does NOT return a Python Object.
         The goal of this function is to be used when RS4 object are necessary. Run getDEE2_bundle() for Pytho
@@ -339,13 +325,12 @@ class DEE2:
 
         get_dee2_metadata = robjects.r['getDEE2Metadata']
 
-        data = get_dee2_metadata(species, outfile)
+        data = get_dee2_metadata(species, outfile, **kwargs)
 
         return data
 
-    # TODO what to do here front-end wise when no file is provided? just print it?
-    # TODO add type hints
-    def list_bundles(self, species: str = None):
+    @convert_rdf_to_pd
+    def list_bundles(self, species: str = None) -> [DataFrame]:
         """
         Runs the list_bundles() R function for getDEE2 R package.
 
@@ -480,17 +465,7 @@ class DEE2:
 
         return self._call_load_functions('loadTxInfo', zip_name)
 
-    # TODO bundles is expected to be a table how to pass this to R from Python if previously generated?
-    # TODO col needs to be selected from Galaxy and passed on. Adding it as class attribute does not make sense
-    #   in this case
-    # TODO the 'query' (or in our case the srr_vector) field IS NOT a vector field. It is a standard string
-    #   representing a dataset name. Therefore it only accepts A SINGLE VALUE.
-    #   Converting it to srr_vector is redundant.
-    # TODO edit out the srr_vector, add and validate it as single string and in the front-end, when this function
-    #   is chosen show a text saying that from the data_set input ONLY THE FIRST value will be kept and that it only
-    #   accepts single values. At the moment tests will be done as is.
-    # TODO does this need decorators for conversion to Pandas DF or Python SE?
-    # TODO Does this accept RS4 object as arguments, and if, should this be cloned for RS4 compatibility?
+    @convert_query
     def query_bundles(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
                       bundles=NULL) -> [None, ListVector]:
         """
@@ -518,9 +493,8 @@ class DEE2:
 
         return data
 
-    # TODO does this need decorators for conversion to Pandas DF or Python SE?
-    # TODO Does this accept RS4 object as arguments, and if, should this be cloned for RS4 compatibility?
-    def queryDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, metadata=NULL) -> [None, ListVector]:
+    @convert_query
+    def queryDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, metadata=NULL, **kwargs) -> [None, ListVector]:
         """
         Runs the queryDEE2() R function from getDEE2 R package.
 
@@ -539,7 +513,7 @@ class DEE2:
 
         query_dee2 = robjects.r['queryDEE2']
 
-        data = query_dee2(species, srr_vector, metadata)
+        data = query_dee2(species, srr_vector, metadata, **kwargs)
 
         return data
 
