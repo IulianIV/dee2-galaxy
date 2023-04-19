@@ -1,6 +1,7 @@
 import sys
 import argparse
 from dee2conn import DEE2
+from dee2converter import SummarizedExperiment
 
 # TODO for each selectable function in dee2.xml add a help attribute to mention what attributes should be set for it
 #   to properly work
@@ -82,11 +83,24 @@ def main():
         results = dee2.convert_to_csv(func_call, outfile, mode='w', sep='\t')
 
     else:
-        func_call = getattr(dee2, function)()
 
-        results = dee2.convert_to_csv(func_call, outfile, mode='w', sep='\t')
+        if function == 'getDEE2_bundle' and len(dataset.split(',')) > 1:
+            raise ValueError(f'Function {function} only accepts one Accession Number.'
+                             f' Value {",".join(dataset.split(","))} is not valid')
 
-    return print(f'{results}')
+        if 'load' in function:
+            func_call = getattr(dee2, function)(metadata)
+        else:
+            func_call = getattr(dee2, function)()
+
+        if type(func_call) is SummarizedExperiment:
+            results = func_call.colData.to_pd()
+
+            results = dee2.convert_to_csv(results, outfile, mode='w', sep='\t')
+        else:
+            results = dee2.convert_to_csv(func_call, outfile, mode='w', sep='\t')
+
+    return results
 
 
 if __name__ == '__main__':
