@@ -111,13 +111,13 @@
         <section name="functions" title="Other DEE2 Functions">
             <param name="std_funcs" type="select" label="Standard functions" optional="true">
                 <option value="getDEE2_bundle">Fetch gene expression data</option>
-                <option value="getDEE2Metadata">Get organism Metadata</option>
+                <option value="getDEE2Metadata" selected="true">Get organism Metadata</option>
                 <option value="list_bundles">Completed DEE2 projects</option>
                 <option value="query_bundles">Query bundle existence</option>
                 <option value="queryDEE2">Query Dataset availability</option>
             </param>
             <param name="adv_funcs" type="select" label="Advanced functions" optional="true">
-                <option value="se" selected="true">Create summarizedExperiment object</option>
+                <option value="se">Create summarizedExperiment object</option>
                 <option value="srx_agg">Summarized run data to experiments</option>
                 <option value="Tx2Gene">Aggregate Transcript Counts to Gene-Level Counts</option>
             </param>
