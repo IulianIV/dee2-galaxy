@@ -6,7 +6,6 @@ from rpy2.robjects.methods import RS4
 from rpy2.rinterface import NULL
 from dee2converter import ConvertedDEE2Object, convert_rdf_to_pd, convert_rse2pyse
 
-
 # TODO All "loadXYZ" functions rely on zipfile processing.
 #   How should the zip file be processed if there is a choice to not save it locally?
 # TODO check this situation that occurs on multiple functions
@@ -29,6 +28,8 @@ from dee2converter import ConvertedDEE2Object, convert_rdf_to_pd, convert_rse2py
 
 # TODO some functions now have decorators to handle conversion of data. What is the situation when different
 #   modes are accessed, such as "legacy=TRUE"?
+
+# TODO Find a way to provide both Python and R objects in a more DRY form. Regarding methods that end with "_rs4"
 
 
 # Set of valid species recognized by dee2.io
@@ -144,7 +145,34 @@ class DEE2:
                 metadata=NULL, outfile: [str, NULL] = NULL,
                 legacy=FALSE, base_url='http://dee2.io/cgi-bin/request.sh?') -> [None, ConvertedDEE2Object]:
         """
-        Runs the getDEE2() R function from getDEE2 R package.
+        Calls the getDEE2_rs4() function but automatically converts the column data to a Python Summarized Object
+
+        :param counts: A string, either 'GeneCounts', 'TxCounts' or 'Tx2Gene'.
+            When 'GeneCounts' is specified, STAR gene level counts are returned.
+            When 'TxCounts' is specified, kallisto transcript counts are returned.
+            When 'Tx2Gene' is specified, kallisto counts aggregated (by sum) on gene
+            are returned. If left blank, "GeneCounts" will be fetched.
+        :param species: A character string matching a species of interest.
+        :param srr_vector: A character string or vector thereof of SRA run accession numbers
+        :param metadata: metadata optional R object of DEE2 metadata to query.
+        :param outfile: An optional file name for the downloaded dataset.
+        :param legacy: Whether data should be returned in the legacy (list) format. Default is FALSE. Leave this FALSE
+            if you want to receive data as Summarized experiment.
+        :param base_url: The base URL of the service. Leave this as the default URL unless you want to download from
+            a 3rd party mirror.
+        :return: a Python SummarizedExperiment object.
+        """
+
+        data = self.getDEE2_rs4(species, srr_vector, counts, metadata, outfile, legacy, base_url)
+
+        return data
+
+    def getDEE2_rs4(self, species: str = None, srr_vector: [str, ListVector] = None, counts: str = 'GeneCounts',
+                    metadata=NULL, outfile: [str, NULL] = NULL,
+                    legacy=FALSE, base_url='http://dee2.io/cgi-bin/request.sh?') -> [None, RS4]:
+        """
+        Runs the getDEE2() R function from getDEE2 R package. This function does NOT return a Python Object. The goal
+        of this function is to be used when RS4 object are necessary. Run getDEE2() for Pytho friendly results.
 
         The getDEE2 function fetches gene expression data from the DEE2 database of RNA sequencing data and returns it
         as a SummarizedExperiment object.
@@ -162,8 +190,8 @@ class DEE2:
             if you want to receive data as Summarized experiment.
         :param base_url: The base URL of the service. Leave this as the default URL unless you want to download from
             a 3rd party mirror.
-        :return: a SummarizedExperiment object.
-        """
+        :return: a RS4 SummarizedExperiment object.
+         """
 
         species = self.species or species
         metadata = self.metadata or metadata
@@ -191,7 +219,8 @@ class DEE2:
                        base_url: str = "http://dee2.io/huge/") -> [None, ConvertedDEE2Object]:
 
         """
-        Runs the getDEE2_bundle() R function from getDEE2 R package.
+
+        Calls the getDEE2_bundle_rs4() R function and automatically converts it to a Python Summarized object
 
         Get a DEE2 project bundle.
 
@@ -218,7 +247,48 @@ class DEE2:
             Default is FALSE. Leave this FALSE if you want to receive data as Summarized experiment.
         :param base_url: The base URL of the service. Leave this as the default URL
             unless you want to download from a 3rd party mirror.
-        :returns: a SummarizedExperiment object.
+        :returns: a Python SummarizedExperiment object.
+        """
+
+        data = self.getDEE2_bundle_rs4(species, srr_vector, col, counts, bundles, legacy, base_url)
+
+        return data
+
+    def getDEE2_bundle_rs4(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
+                       bundles=NULL, counts: str = 'GeneCounts', legacy=FALSE,
+                       base_url: str = "http://dee2.io/huge/") -> [None, RS4]:
+
+        """
+        Runs the getDEE2_bundle() R function from getDEE2 R package. This function does NOT return a Python Object.
+        The goal of this function is to be used when RS4 object are necessary. Run getDEE2_bundle() for Pytho
+        friendly results.
+
+        Get a DEE2 project bundle.
+
+        The getDEE2_bundle function fetches gene expression data from DEE2.
+
+        This function will only work if all SRA runs have been successfully
+        processed for an SRA project. This function returns a
+        SummarizedExperiment object.
+
+        :param species: A character string matching the species of interest.
+        :param srr_vector: A character string, such as the SRA project accession number
+            or the GEO series accession number.
+        :param col: the column name to be queried, usually "SRP_accession" for SRA
+            project accession or "GSE_accession" for GEO series accession.
+        :param counts: A string, either 'GeneCounts', 'TxCounts' or 'Tx2Gene'.
+            When 'GeneCounts' is specified, STAR gene level counts are returned.
+            When 'TxCounts' is specified, kallisto transcript counts are returned.
+            When 'Tx2Gene' is specified, kallisto counts aggregated (by sum) on gene
+            are returned. If left blank, "GeneCounts" will be fetched.
+        :param bundles: optional table of previously downloaded bundles.
+            providing this will speed up performance if multiple queries are made in a
+            session. If left blank, the bundle list will be fetched again.
+        :param legacy: Whether data should be returned in the legacy (list) format.
+            Default is FALSE. Leave this FALSE if you want to receive data as Summarized experiment.
+        :param base_url: The base URL of the service. Leave this as the default URL
+            unless you want to download from a 3rd party mirror.
+        :returns: a R SummarizedExperiment object.
         """
 
         species = self.species or species
@@ -235,7 +305,26 @@ class DEE2:
     @convert_rdf_to_pd
     def getDEE2Metadata(self, species: str = None, outfile: [str, NULL] = NULL) -> [None, DataFrame]:
         """
-        Runs the getDEE2Metadata() R function for getDEE2 R package.
+        Runs the getDEE2Metadata_rs4() R function for getDEE2 R package. Automatically converts to a Pandas DataFrame
+
+        Get DEE2 Metadata.
+
+        This function fetches the short metadata for the species of interest.
+
+        :param species: A character string matching a species of interest.
+        :param outfile: Optional filename
+        :returns: a table of metadata.
+        """
+
+        data = self.getDEE2Metadata_rs4(species, outfile)
+
+        return data
+
+    def getDEE2Metadata_rs4(self, species: str = None, outfile: [str, NULL] = NULL) -> [None, RS4]:
+        """
+        Runs the getDEE2Metadata() R function for getDEE2 R package. This function does NOT return a Python Object.
+        The goal of this function is to be used when RS4 object are necessary. Run getDEE2_bundle() for Pytho
+        friendly results.
 
         Get DEE2 Metadata.
 
@@ -400,6 +489,8 @@ class DEE2:
     # TODO edit out the srr_vector, add and validate it as single string and in the front-end, when this function
     #   is chosen show a text saying that from the data_set input ONLY THE FIRST value will be kept and that it only
     #   accepts single values. At the moment tests will be done as is.
+    # TODO does this need decorators for conversion to Pandas DF or Python SE?
+    # TODO Does this accept RS4 object as arguments, and if, should this be cloned for RS4 compatibility?
     def query_bundles(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
                       bundles=NULL) -> [None, ListVector]:
         """
@@ -427,6 +518,8 @@ class DEE2:
 
         return data
 
+    # TODO does this need decorators for conversion to Pandas DF or Python SE?
+    # TODO Does this accept RS4 object as arguments, and if, should this be cloned for RS4 compatibility?
     def queryDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, metadata=NULL) -> [None, ListVector]:
         """
         Runs the queryDEE2() R function from getDEE2 R package.
