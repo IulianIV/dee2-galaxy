@@ -5,8 +5,8 @@
 At the moment the tool is not available in the Galaxy Toolshed.
 Nonetheless, it can still be used in a local Galaxy instance.
 
-1. You need to have R installed. How to install R.
-2. Once R is installed, you need to install getDEE2. How to install getDEE2.
+1. You need to have R installed. [How to install R](https://cran.r-project.org/doc/FAQ/R-FAQ.html#How-can-R-be-installed_003f).
+2. Once R is installed, you need to install getDEE2. [How to install getDEE2](https://www.bioconductor.org/packages/release/bioc/html/getDEE2.html).
 
 The easiest way to make use of the toll is to download the files
 found under `tools/custom_tools` and add them in a sub-folder from
@@ -21,8 +21,8 @@ After all these steps are done, the tool should be usable in your local Galaxy i
 
 The tool is dependent on **rpy2** and **pandas**.
 
-* rpy2 is used to create a connection between python and the getDEE2 library
-* pandas is needed because some results from the R DataFrame objects are
+* [rpy2](https://rpy2.github.io/) is used to create a connection between python and the getDEE2 library
+* [pandas](https://pandas.pydata.org/) is needed because some results from the R DataFrame objects are
     converted to pandas DataFrames
 
 ## Usage
@@ -35,6 +35,9 @@ Example usage
 
 This produces an R SummarizedExperiment object which in turn gets converted
 to Python classes and can be queried and manipulated.
+
+The way the module is constructed makes it possible to use it as a package too. Just import `dee2conn.py` 
+and `dee2converter.py` and you can leverage the full extent of the module.
 
 For example, in R:
 
@@ -63,10 +66,16 @@ colData = getdee2.colData
 pd_df = colData.to_pd
 ```
 
+All `getDEE2` R results are converted to `rpy2` objects and then to custom Python classes. The custom classes inherit
+from base rpy2 classes, thus they ar basically the same. What they offer instead is a more user-friendly usage.
+
+All converted objects can be transformed to Pandas Dataframes for further manipulation.
+
+The module also offers full usability of the R module through Python. By default, R messages are turned off.
+To see the R shell in progress set `supress_r_warnings` to `False` on your DEE2 instance.
+
+Besides the possibility to manipulate data through pandas, the module also offers a `convert_to_csv` method which
+attempts to convert the previously created pandas DataFrames to a CSV file.
+
+---
 Info about getDEE2 functions can be found on the packages' website.
-
-R functions which return SummarizedExperiments object need to explicitly
-be converted to pandas DataFrames since some attributes of those classes
-are not convertible.
-
-Functions which return R DataFrame objects get automatically converted.
