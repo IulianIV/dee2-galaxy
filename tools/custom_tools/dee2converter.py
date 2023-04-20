@@ -1,6 +1,6 @@
 import pandas.core.frame
 import rpy2.robjects.vectors
-from rpy2.robjects.vectors import StrVector
+from rpy2.robjects.vectors import Matrix, FloatMatrix, ListVector
 from rpy2.robjects.methods import RS4
 import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
@@ -8,9 +8,20 @@ from abc import ABC
 
 # TODO see if RS4_AutoType method can be used here. More info:
 #   https://rpy2.github.io/doc/v3.5.x/html/robjects_oop.html#automated-mapping-of-user-defined-classes
+# TODO rpy2 DataFrame objects have a 'to_csvfile' method. Maybe this could be used to make
+#   processing faster
+
+RPY2_MATRICES = [rpy2.robjects.vectors.Matrix,
+                 rpy2.robjects.vectors.FloatMatrix,
+                 rpy2.robjects.vectors.IntMatrix,
+                 rpy2.robjects.vectors.StrMatrix,
+                 rpy2.robjects.vectors.BoolMatrix,
+                 rpy2.robjects.vectors.ByteMatrix,
+                 rpy2.robjects.vectors.ComplexMatrix,
+                 ]
 
 
-class ConvertedDEE2Object(ABC):
+class ConvertedDEE2Object:
     def __getattr__(self, item):
         try:
             return rse2pyse(self.slots[item])
@@ -40,7 +51,47 @@ class SimpleList(RS4, ConvertedDEE2Object):
     pass
 
 
-def rse2pyse(obj: RS4):
+class ConvertedMatrix(Matrix, pandas.DataFrame):
+
+    def __init__(self, matrix: RPY2_MATRICES):
+        super().__init__()
+        self.r_matrix = matrix
+        self.indices = self._indices
+        self.df_matrix = self._df_matrix
+
+    @property
+    def _df_matrix(self):
+        n_cols = self.r_matrix.ncol
+        col_names = self.r_matrix.colnames
+        matrix_dict = dict()
+        matrix_df = pandas.DataFrame
+
+        for col in range(1, n_cols + 1):
+            matrix_dict[col_names[col - 1]] = [row for row in self.r_matrix.rx(True, col)]
+
+        matrix_dict['indices'] = self.indices
+
+        matrix_df = matrix_df.from_dict(matrix_dict)
+        matrix_df.set_index('indices', drop=True, inplace=True)
+
+        return matrix_df
+
+    @property
+    def _indices(self):
+        indices = [row_name for row_name in self.r_matrix.rownames]
+        return indices
+
+
+class ConvertedListVector(ListVector, ConvertedDEE2Object):
+
+    def __int__(self, list_vector: ListVector):
+        self.vector = list_vector
+
+    def list_slots(self):
+        pass
+
+
+def rse2pyse(obj: [RS4, RPY2_MATRICES]):
     if 'SummarizedExperiment' in obj.rclass:
         res = SummarizedExperiment(obj)
     elif 'DFrame' in obj.rclass:
@@ -49,9 +100,40 @@ def rse2pyse(obj: RS4):
         res = SimpleAssays(obj)
     elif 'SimpleList' in obj.rclass:
         res = SimpleList(obj)
+    elif type(obj) in RPY2_MATRICES:
+        res = ConvertedMatrix(obj)
     else:
         res = obj
     return res
+
+
+# Decorator to convert a R Matrix Object to a Pands DataFrame.
+# Leaving for future reference. Will be removed in the next version.
+def convert_rm2pdf(func):
+
+    def wrapper(*args, **kwargs):
+        r_matrix = func(*args, **kwargs)
+        matrix_df = dict()
+        rm_df = pandas.DataFrame
+
+        if type(r_matrix) not in RPY2_MATRICES:
+            return print(f'Only R Matrix types can be processed. {func.__name__} is of type {type(r_matrix)}')
+
+        indices = [row_name for row_name in r_matrix.rownames]
+        n_cols = r_matrix.ncol
+        col_names = r_matrix.colnames
+
+        for col in range(1, n_cols+1):
+            matrix_df[col_names[col-1]] = [row for row in r_matrix.rx(True, col)]
+
+        matrix_df['indices'] = indices
+
+        rm_df = rm_df.from_dict(matrix_df)
+        rm_df.set_index('indices', drop=True, inplace=True)
+
+        return rm_df
+
+    return wrapper
 
 
 def pd_from_r_df(r_df: [rpy2.robjects.vectors.DataFrame, ConvertedDEE2Object]) -> pandas.core.frame.DataFrame:
@@ -71,15 +153,6 @@ def convert_rdf_to_pd(func):
     def wrapper(*args, **kwargs):
         results = func(*args, **kwargs)
 
-        # TODO Use data from here: https://rpy2.github.io/doc/v3.5.x/html/vector.html#rpy2.robjects.vectors.Array
-        #   to process and parse Matrix and FloatMatrix types.
-        #   They are necessary for srx_agg() to work.
-        # for row in results.rx(True, 1):
-        #     print(row)
-
-        if 'outfile' in kwargs and kwargs['outfile'] is not None:
-            return results
-
         converted = pd_from_r_df(results)
 
         return converted
@@ -96,6 +169,8 @@ def convert_rse2pyse(func):
     return wrapper
 
 
+# TODO If I am not mistaken this is a ListVector too. Therefore, this should be included, if possible, in the
+#   Matrix & List Class above.
 def convert_query(func):
 
     def wrapper(*args, **kwargs):
