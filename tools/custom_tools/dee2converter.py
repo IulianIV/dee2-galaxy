@@ -22,6 +22,13 @@ RPY2_MATRICES = [rpy2.robjects.vectors.Matrix,
 
 
 class ConvertedDEE2Object:
+    """
+    Class that handles conversion from R's S4 OOP Objects to Python customized Classes.
+    At the moment it does not offer much functionality besides:
+    - accessing a S4 objects properties, like in R;
+    - conversion to pandas DataFrame
+    - list of S4 Object Slotnames
+    """
     def __getattr__(self, item):
         try:
             return rse2pyse(self.slots[item])
@@ -52,7 +59,14 @@ class SimpleList(RS4, ConvertedDEE2Object):
 
 
 class ConvertedMatrix(Matrix, pandas.DataFrame):
+    """
+    Class that handles conversion from R's Matrix Objects to Python customized Classes.
+    It handles automatic conversion from any type of R Matrix (FloatMatrix, ByteMatrix etc.)
+    All regular properties & attributes of rpy2 Matrix class are inherited and can be accessed
+        through these classes 'r_matrix' attribute.
 
+    Additionally, the class covers conversion from R Matrix to Pandas DataFrame
+    """
     def __init__(self, matrix: RPY2_MATRICES):
         super().__init__()
         self.r_matrix = matrix
@@ -92,6 +106,9 @@ class ConvertedListVector(ListVector, ConvertedDEE2Object):
 
 
 def rse2pyse(obj: [RS4, RPY2_MATRICES]):
+    """
+    Function that determines which subclass of ConvertedDEE2Object or other ConvertedObject to call
+    """
     if 'SummarizedExperiment' in obj.rclass:
         res = SummarizedExperiment(obj)
     elif 'DFrame' in obj.rclass:
@@ -137,6 +154,9 @@ def convert_rm2pdf(func):
 
 
 def pd_from_r_df(r_df: [rpy2.robjects.vectors.DataFrame, ConvertedDEE2Object]) -> pandas.core.frame.DataFrame:
+    """
+    Function that handles conversion from R DataFrame to Pandas DataFrame
+    """
     try:
         r_df = ro.DataFrame(r_df)
     except ValueError:
@@ -149,6 +169,10 @@ def pd_from_r_df(r_df: [rpy2.robjects.vectors.DataFrame, ConvertedDEE2Object]) -
 
 
 def convert_rdf_to_pd(func):
+    """
+    Handy wrapper for 'pd_from_r_df' that helps to automatically convert R DataFrame results from getDEE2 functions
+    to Python Pandas DataFrame
+    """
 
     def wrapper(*args, **kwargs):
         results = func(*args, **kwargs)
@@ -161,7 +185,9 @@ def convert_rdf_to_pd(func):
 
 
 def convert_rse2pyse(func):
-
+    """
+    Wrapper that helps with automatic conversion of R S4 object to Python Objects
+    """
     def wrapper(*args, **kwargs):
         obj = func(*args, **kwargs)
         return rse2pyse(obj)
@@ -172,6 +198,9 @@ def convert_rse2pyse(func):
 # TODO If I am not mistaken this is a ListVector too. Therefore, this should be included, if possible, in the
 #   Matrix & List Class above.
 def convert_query(func):
+    """
+    Wrapper that helps with the conversion of R ListVector to Pandas DataFrame
+    """
 
     def wrapper(*args, **kwargs):
         obj = func(*args, **kwargs)
