@@ -128,7 +128,7 @@ class DEE2:
 
     @staticmethod
     def convert_to_csv(dataframe: pandas.core.frame.DataFrame,
-                       outfile, mode: str = 'r', sep: str = ',', **kwargs) -> [str, None]:
+                       outfile, mode: str = 'w', sep: str = '\t', **kwargs) -> [str, None]:
         if len(sep) > 1:
             raise ValueError('Separator has to be a single character or a length 1 string.')
 
@@ -544,7 +544,8 @@ class DEE2:
 
         return data
 
-    @convert_rdf_to_pd
+    # @convert_rm2pdf
+    @convert_rse2pyse
     def srx_agg(self, get_dee2: RS4 = None, counts: str = 'GeneCounts') -> [None, DataFrame]:
         """
         Runs the srx_agg() R function from getDEE2 R package.
@@ -572,7 +573,8 @@ class DEE2:
 
         return data
 
-    @convert_rdf_to_pd
+    # @convert_rdf_to_pd
+    @convert_query
     def Tx2Gene(self, get_dee2: RS4 = None) -> [None, DataFrame]:
         """
         Runs the Tx2Gene() R function from getDEE2 R package.
