@@ -1,15 +1,15 @@
 import sys
 import argparse
 from dee2conn import DEE2
-from dee2converter import SummarizedExperiment, ConvertedMatrix
+from dee2converter import SummarizedExperiment, ConvertedMatrix, ConvertedListVector
 
-# TODO for each selectable function in dee2.xml add a help attribute to mention what attributes should be set for it
-#   to properly work
 # TODO create a more comprehensive help section for CLI functions.
 # TODO Learn more about Galaxy ObjectStore: https://galaxyproject.org/admin/objectstore/
 # TODO Redo xml commands and structure as it has been passed through planemo linter
 # TODO Test with planemo
 # TODO add a function that parses arguments and sets them as dee2 class attributes.
+# TODO add error handling. What happens when there is a NullType because of wrong accessions?
+#   what happens when the error that some accessions are wrong is risen? (only happens in R)
 
 parser = argparse.ArgumentParser(
     description='getDEE2 R package wrapper. Can run getDEE2 functions provided the right arguments')
@@ -76,33 +76,31 @@ def main():
     dee2.data_set = dataset
     dee2.species = species
 
-    if function == 'getDEE2':
+    if function == 'getDEE2_bundle' and len(dataset.split(',')) > 1:
+        raise ValueError(f'Function {function} only accepts one Accession Number.'
+                         f' Value {",".join(dataset.split(","))} is not valid')
 
-        func_call = dee2.getDEE2().colData.to_pd()
-
-        results = dee2.convert_to_csv(func_call, outfile, mode='w', sep='\t')
-
+    if 'load' in function:
+        func_call = getattr(dee2, function)(metadata)
     else:
+        func_call = getattr(dee2, function)()
 
-        if function == 'getDEE2_bundle' and len(dataset.split(',')) > 1:
-            raise ValueError(f'Function {function} only accepts one Accession Number.'
-                             f' Value {",".join(dataset.split(","))} is not valid')
+    if isinstance(func_call, SummarizedExperiment):
+        # this is identical to the R: assays(x)$counts
+        # This needs to be implemented somehow
+        # results = func_call.assays.data.listData.counts
 
-        if 'load' in function:
-            func_call = getattr(dee2, function)(metadata)
-        else:
-            func_call = getattr(dee2, function)()
-
-        if type(func_call) is SummarizedExperiment:
-            results = func_call.colData.to_pd()
-            results = dee2.convert_to_csv(results, outfile)
-
-        elif type(func_call) is ConvertedMatrix:
-            results = func_call.df_matrix
-            results = dee2.convert_to_csv(results, outfile)
-
-        else:
-            results = dee2.convert_to_csv(func_call, outfile)
+        results = func_call.colData.to_pd()
+        results = dee2.convert_to_csv(results, outfile)
+        print(results)
+    elif isinstance(func_call, ConvertedMatrix):
+        results = func_call.df_matrix
+        results = dee2.convert_to_csv(results, outfile)
+    elif isinstance(func_call, ConvertedListVector):
+        results = func_call.MetadataFull.to_pd()
+        results = dee2.convert_to_csv(results, outfile)
+    else:
+        results = dee2.convert_to_csv(func_call, outfile)
 
     return results
 
