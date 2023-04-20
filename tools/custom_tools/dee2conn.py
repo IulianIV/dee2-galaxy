@@ -4,7 +4,7 @@ from rpy2 import robjects
 from rpy2.robjects.vectors import ListVector, BoolVector, DataFrame, StrSexpVector
 from rpy2.robjects.methods import RS4
 from rpy2.rinterface import NULL
-from dee2converter import ConvertedDEE2Object, convert_rdf_to_pd, convert_rse2pyse, convert_query
+from dee2converter import ConvertedDEE2Object, convert_rdf_to_pd, convert_ro2pyo, convert_query
 
 
 # TODO check this situation that occurs on multiple functions
@@ -137,7 +137,7 @@ class DEE2:
 
         return results
 
-    @convert_rse2pyse
+    @convert_ro2pyo
     def getDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, counts: str = 'GeneCounts',
                 metadata=NULL, outfile: [str, NULL] = NULL,
                 legacy=FALSE, base_url='http://dee2.io/cgi-bin/request.sh?') -> [None, ConvertedDEE2Object]:
@@ -200,7 +200,7 @@ class DEE2:
 
         return data
 
-    @convert_rse2pyse
+    @convert_ro2pyo
     def getDEE2_bundle(self, species: str = None, srr_vector: [str, ListVector] = None, col: str = 'SRP_accession',
                        counts: str = 'GeneCounts', bundles=NULL, legacy=FALSE,
                        base_url: str = "http://dee2.io/huge/", **kwargs) -> [None, ConvertedDEE2Object]:
@@ -517,7 +517,7 @@ class DEE2:
 
         return data
 
-    @convert_rse2pyse
+    @convert_ro2pyo
     def se(self, get_dee2: RS4 = None, counts: str = "GeneCounts") -> [None, ConvertedDEE2Object]:
         """
         Runs the se() R function from getDEE2 R package.
@@ -544,8 +544,7 @@ class DEE2:
 
         return data
 
-    # @convert_rm2pdf
-    @convert_rse2pyse
+    @convert_ro2pyo
     def srx_agg(self, get_dee2: RS4 = None, counts: str = 'GeneCounts') -> [None, DataFrame]:
         """
         Runs the srx_agg() R function from getDEE2 R package.
@@ -574,7 +573,8 @@ class DEE2:
         return data
 
     # @convert_rdf_to_pd
-    @convert_query
+    # @convert_query
+    @convert_ro2pyo
     def Tx2Gene(self, get_dee2: RS4 = None) -> [None, DataFrame]:
         """
         Runs the Tx2Gene() R function from getDEE2 R package.

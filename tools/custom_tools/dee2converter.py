@@ -1,24 +1,22 @@
 import pandas.core.frame
 import rpy2.robjects.vectors
-from rpy2.robjects.vectors import Matrix, FloatMatrix, ListVector
+from rpy2.robjects.vectors import Matrix, ListVector, DataFrame
 from rpy2.robjects.methods import RS4
 import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
-from abc import ABC
 
 # TODO see if RS4_AutoType method can be used here. More info:
 #   https://rpy2.github.io/doc/v3.5.x/html/robjects_oop.html#automated-mapping-of-user-defined-classes
 # TODO rpy2 DataFrame objects have a 'to_csvfile' method. Maybe this could be used to make
 #   processing faster
 
-RPY2_MATRICES = [rpy2.robjects.vectors.Matrix,
+RPY2_MATRICES = (rpy2.robjects.vectors.Matrix,
                  rpy2.robjects.vectors.FloatMatrix,
                  rpy2.robjects.vectors.IntMatrix,
                  rpy2.robjects.vectors.StrMatrix,
                  rpy2.robjects.vectors.BoolMatrix,
                  rpy2.robjects.vectors.ByteMatrix,
-                 rpy2.robjects.vectors.ComplexMatrix,
-                 ]
+                 rpy2.robjects.vectors.ComplexMatrix)
 
 
 class ConvertedDEE2Object:
@@ -31,7 +29,7 @@ class ConvertedDEE2Object:
     """
     def __getattr__(self, item):
         try:
-            return rse2pyse(self.slots[item])
+            return ro2pyo(self.slots[item])
         except LookupError:
             raise AttributeError(f'{type(self).__name__} object has no attribute {item}')
 
@@ -56,6 +54,14 @@ class SimpleAssays(RS4, ConvertedDEE2Object):
 
 class SimpleList(RS4, ConvertedDEE2Object):
     pass
+
+
+class ConvertedListVector(ListVector, ConvertedDEE2Object):
+    def __getattr__(self, item):
+        try:
+            return ro2pyo(self.rx2(item))
+        except LookupError:
+            raise AttributeError(f'{type(self).__name__} object has no attribute {item}')
 
 
 class ConvertedMatrix(Matrix, pandas.DataFrame):
@@ -96,16 +102,7 @@ class ConvertedMatrix(Matrix, pandas.DataFrame):
         return indices
 
 
-class ConvertedListVector(ListVector, ConvertedDEE2Object):
-
-    def __int__(self, list_vector: ListVector):
-        self.vector = list_vector
-
-    def list_slots(self):
-        pass
-
-
-def rse2pyse(obj: [RS4, RPY2_MATRICES]):
+def ro2pyo(obj: [RS4, RPY2_MATRICES]):
     """
     Function that determines which subclass of ConvertedDEE2Object or other ConvertedObject to call
     """
@@ -117,43 +114,16 @@ def rse2pyse(obj: [RS4, RPY2_MATRICES]):
         res = SimpleAssays(obj)
     elif 'SimpleList' in obj.rclass:
         res = SimpleList(obj)
-    elif type(obj) in RPY2_MATRICES:
+    elif isinstance(obj, RPY2_MATRICES):
         res = ConvertedMatrix(obj)
+    elif isinstance(obj, ListVector):
+        res = ConvertedListVector(obj)
     else:
         res = obj
     return res
 
 
-# Decorator to convert a R Matrix Object to a Pands DataFrame.
-# Leaving for future reference. Will be removed in the next version.
-def convert_rm2pdf(func):
-
-    def wrapper(*args, **kwargs):
-        r_matrix = func(*args, **kwargs)
-        matrix_df = dict()
-        rm_df = pandas.DataFrame
-
-        if type(r_matrix) not in RPY2_MATRICES:
-            return print(f'Only R Matrix types can be processed. {func.__name__} is of type {type(r_matrix)}')
-
-        indices = [row_name for row_name in r_matrix.rownames]
-        n_cols = r_matrix.ncol
-        col_names = r_matrix.colnames
-
-        for col in range(1, n_cols+1):
-            matrix_df[col_names[col-1]] = [row for row in r_matrix.rx(True, col)]
-
-        matrix_df['indices'] = indices
-
-        rm_df = rm_df.from_dict(matrix_df)
-        rm_df.set_index('indices', drop=True, inplace=True)
-
-        return rm_df
-
-    return wrapper
-
-
-def pd_from_r_df(r_df: [rpy2.robjects.vectors.DataFrame, ConvertedDEE2Object]) -> pandas.core.frame.DataFrame:
+def pd_from_r_df(r_df: [DataFrame, ConvertedDEE2Object]) -> pandas.core.frame.DataFrame:
     """
     Function that handles conversion from R DataFrame to Pandas DataFrame
     """
@@ -184,13 +154,13 @@ def convert_rdf_to_pd(func):
     return wrapper
 
 
-def convert_rse2pyse(func):
+def convert_ro2pyo(func):
     """
     Wrapper that helps with automatic conversion of R S4 object to Python Objects
     """
     def wrapper(*args, **kwargs):
         obj = func(*args, **kwargs)
-        return rse2pyse(obj)
+        return ro2pyo(obj)
 
     return wrapper
 
@@ -215,4 +185,3 @@ def convert_query(func):
         return bundle_df
 
     return wrapper
-
