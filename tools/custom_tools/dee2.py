@@ -1,7 +1,7 @@
 import sys
 import argparse
 from dee2conn import DEE2
-from dee2converter import SummarizedExperiment
+from dee2converter import SummarizedExperiment, ConvertedMatrix
 
 # TODO for each selectable function in dee2.xml add a help attribute to mention what attributes should be set for it
 #   to properly work
@@ -95,10 +95,14 @@ def main():
 
         if type(func_call) is SummarizedExperiment:
             results = func_call.colData.to_pd()
+            results = dee2.convert_to_csv(results, outfile)
 
-            results = dee2.convert_to_csv(results, outfile, mode='w', sep='\t')
+        elif type(func_call) is ConvertedMatrix:
+            results = func_call.df_matrix
+            results = dee2.convert_to_csv(results, outfile)
+
         else:
-            results = dee2.convert_to_csv(func_call, outfile, mode='w', sep='\t')
+            results = dee2.convert_to_csv(func_call, outfile)
 
     return results
 
