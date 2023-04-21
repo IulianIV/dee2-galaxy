@@ -287,3 +287,4 @@ tox.ini
 /config/workflow_resource_mapper_conf.yml.sample
 /config/workflow_resource_params_conf.xml.sample
 /config/workflow_schedulers_conf.xml.sample
+/README_galaxy.rst
