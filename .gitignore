@@ -223,7 +223,6 @@ manage_toolshed_db.sh
 mypy.ini
 pyproject.toml
 pytest.ini
-README.rst
 requirements.txt
 rolling_restart.sh
 run.sh
