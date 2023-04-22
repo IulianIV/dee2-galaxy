@@ -22,21 +22,17 @@
         #set $column = $adv_parameters.col
         -col '$column'
 
-        #set $bundle = $adv_parameters.bundle
-        -b '$bundle'
+        ##set $bundle = $adv_parameters.bundle
+        ##-b '$bundle'
 
         #set $counts = $adv_parameters.counts
         -c '$counts'
 
-        #set $legacy = $adv_parameters.legacy
-        --legacy '$legacy'
+        #set $dee2_zip = $adv_parameters.dee2_zip
+        -z '$dee2_zip'
 
-        #set $url = $adv_parameters.url
-        --set-base-url '$url'
-
-        ## TODO this needs fixing? The naming sounds off.
-        #set $metadata = $adv_parameters.dee2_zip
-        -m '$metadata'
+        ##set $metadata = $adv_parameters.metadata
+        ##-m '$metadata'
 
         #if $functions
         #set $std_funcs = $functions.std_funcs
@@ -59,11 +55,11 @@
     </command>
     <inputs>
         <param name="species" type="select" label="Organism of interest">
-            <option value="athaliana" selected="true">Arabidopsis thaliana</option>
+            <option value="athaliana">Arabidopsis thaliana</option>
             <option value="celegans">Caenorhabditis elegans</option>
             <option value="dmelanogaster">Drosophila melanogaster</option>
             <option value="drerio">Danio rerio</option>
-            <option value="ecoli">Escherichia coli</option>
+            <option value="ecoli" selected="true">Escherichia coli</option>
             <option value="hsapiens">Homo sapiens</option>
             <option value="mmusculus">Mus musculus</option>
             <option value="rnorvegicus">Rattus norvegicus</option>
@@ -75,9 +71,9 @@
                 <option value="keyword">By keyword</option>
             </param>
             <when value="accession">
-                <param name="accession_numbers" type="text" value="GSE63462,SRP070529,SRR401430"
+                <param name="accession_numbers" type="text" value="SRR1067773,SRR5350513"
                        label="Accession number" optional="false"
-                       help="Multiple accessions can be separated by commas. Try GSE63462,SRP070529,SRR401430 for A. thaliana"/>
+                       help="Multiple accessions can be separated by commas. Try SRR1067773, SRR5350513 for E. coli"/>
             </when>
             <when value="keyword">
                 <param name="keyword_search" type="text" value="ethanol" optional="false"
@@ -86,32 +82,29 @@
         </conditional>
         <section name="adv_parameters" title="Set advanced parameters"
                  help="Some of these parameters are mandatory for some selectable functions. Read more info below.">
-            <param name="col" type="select" label="Column" help="Column name to filter by">
-                <option value="false" selected="true">No selection</option>
-                <option value="SRP_accession" selected="true">SRP_accession: SRA project accession
+            <param name="col" type="select" label="Column" help="Column name to filter by" optional="true">
+                <option value="SRP_accession">SRP_accession: SRA project accession
                 </option>
                 <option value="GSE_accession">GSE_accession: GEO series accession</option>
             </param>
-            <param format="tabular" name="bundle" type="data" optional="true"
-                   label="Bundle table" help="Optional. Will auto-grab if missing."/>
-            <param name="counts" type="select" label="Counts">
-                <option value="false" selected="true">No selection</option>
-                <option value="GeneCounts" selected="true">GeneCounts: STAR gene level counts
+<!--            <param format="tabular" name="bundle" type="data" optional="true"-->
+<!--                   label="Bundle table" help="Optional. Will auto-grab if missing."/>-->
+            <param name="counts" type="select" label="Counts" optional="true">
+                <option value="GeneCounts">GeneCounts: STAR gene level counts
                 </option>
                 <option value="TxCounts">TxCounts: Kallisto transcript counts</option>
                 <option value="Tx2Gene">Tx2Gene: Kallisto counts aggregated (by sum) on gene
                 </option>
             </param>
-            <param name="legacy" type="boolean" label="Legacy mode"/>
-            <param name="url" type="text" value=""
-                   label="Base URL" help="Set for dee2.io. See tips for help."/>
-            <param format="zip" name="dee2_zip" type="data" label="DEE2 metadata" optional="true"
-                   help="To shorten load times, upload an already processed DEE2 zip file"/>
+            <param format="zip" name="dee2_zip" type="data" label="DEE2 zip file" optional="true"
+                   help="Usable with loader functions"/>
+<!--            <param format="tabular" name="metadata" type="data" label="Organism Metadata" optional="true"-->
+<!--                   help="Can be used with multiple functions"/>-->
         </section>
         <section name="functions" title="Other DEE2 Functions">
             <param name="std_funcs" type="select" label="Standard functions" optional="true">
                 <option value="getDEE2_bundle">Fetch gene expression data</option>
-                <option value="getDEE2Metadata" selected="true">Get organism Metadata</option>
+                <option value="getDEE2Metadata">Get organism Metadata</option>
                 <option value="list_bundles">Completed DEE2 projects</option>
                 <option value="query_bundles">Query bundle existence</option>
                 <option value="queryDEE2">Query Dataset availability</option>
@@ -122,7 +115,7 @@
                 <option value="Tx2Gene">Aggregate Transcript Counts to Gene-Level Counts</option>
             </param>
             <param name="aux_funcs" type="select" label="Result loader functions" optional="true">
-                <option value="loadFullMeta" selected="true">Load Full Meta</option>
+                <option value="loadFullMeta">Load Full Meta</option>
                 <option value="loadGeneCounts">Load Gene Counts</option>
                 <option value="loadGeneInfo">Load Gene Info</option>
                 <option value="loadQcMx">Load Quality Control Info</option>
@@ -138,52 +131,23 @@
     <tests>
         <test>
             <param name="species" value="ecoli"/>
-            <output name="results" file="outfile" ftype="tabular"/>
+            <param name="std_funcs" value="getDEE2Metadata" />
+            <output name="outfile" file="outfile" ftype="tabular"/>
         </test>
     </tests>
     <help><![CDATA[
-.. _NCBI Sequence Read Archive: http://www.ncbi.nlm.nih.gov/sra
-.. _GEO: http://www.ncbi.nlm.nih.gov/geo/
-.. _SRA: http://www.ncbi.nlm.nih.gov/sra
-.. _here: https://dee2.io/metadata
-.. _experimental: https://dee2.io/request.html
-.. class:: warningmark
 
-Keyword searches in mouse and human take up to a minute to complete.
+Usage:   dee2.py -s 'species' -f 'function' [options]
 
-.. class:: infomark
+Options:
+         -d  Accession Numbers to query
+         -o  Name of file to write results to.
+         -col  Name of file to write results to.
+         -b  Bundle data to add to query.
+         -m  DEE2 Metadata file.
+         -z  DEE2 zip results to use in load functions.
+         -c  Counts to add to the query.
 
-getDEE2 zip files can be obtained by running the DEE2 function --> this needs to be updated - it is not clear.
-
-.. class:: infomark
-
-By default, results are saved in the home folder. To save in a custom folder also provide a full path in the field.
-If the path does not exist, it will be created for you.
-
-**Usage**
-
-Executing the script in the command line is done as such: ``python dee2.py selector data_set_type species``.
-
-``selector`` can only be of **accession** or **keyword**.
-
-``data_set_type`` in the case of **accession** selection has to be a series of `comma-separated` accession numbers.
-
-``species`` has to be an organism of interest supported by DEE2.
-
------
-
-**Other information**
-
-Digital Expression Explorer 2 (DEE2) is a repository of uniformly processed RNA-seq data mined from public data
-obtained from `NCBI Sequence Read Archive`_.
-
-More sophisticated keyword searches can be done at GEO_ and SRA_, to identify studies and accession numbers of
-interest.
-
-Browse the metadata catalogue here_.
-
-Can't find your project of interest in our dataset? Try requesting a SRA project to be added to the express
-queue here (experimental_).
     ]]></help>
     <citations>
         <citation type="doi">https://doi.org/10.1093/gigascience/giz022</citation>
