@@ -167,6 +167,7 @@ def convert_ro2pyo(func):
 
 # TODO If I am not mistaken this is a ListVector too. Therefore, this should be included, if possible, in the
 #   Matrix & List Class above.
+#   Although, the ConvertedListVector class specifically calls for a Lists' member. This converts it as a whole.
 def convert_query(func):
     """
     Wrapper that helps with the conversion of R ListVector to Pandas DataFrame
@@ -176,11 +177,11 @@ def convert_query(func):
         obj = func(*args, **kwargs)
 
         bundle = dict()
-
         for k, v in obj.items():
             bundle[k] = [x for x in v]
 
-        bundle_df = pandas.DataFrame.from_dict(bundle)
+        bundle_df = pandas.DataFrame.from_dict(bundle, orient='index')
+        bundle_df = bundle_df.transpose()
 
         return bundle_df
 
