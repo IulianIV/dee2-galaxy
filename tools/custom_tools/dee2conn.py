@@ -60,13 +60,15 @@ class DEE2:
         self.data_set = None
         self.col = None
         self.counts = None
-
+        self.bundles = NULL
+        self.dee2_zip = NULL
         self.metadata = NULL
         self.outfile = NULL
 
         self._check_species(self.species)
         self._check_counts(self.counts)
         self._check_cols(self.col)
+
 
     @staticmethod
     def _supress_r_warnings():
@@ -127,7 +129,7 @@ class DEE2:
         return srr_vector
 
     @staticmethod
-    def convert_to_csv(dataframe: pandas.core.frame.DataFrame,
+    def convert_to_tsv(dataframe: pandas.core.frame.DataFrame,
                        outfile, mode: str = 'w', sep: str = '\t', **kwargs) -> [str, None]:
         if len(sep) > 1:
             raise ValueError('Separator has to be a single character or a length 1 string.')
@@ -193,6 +195,7 @@ class DEE2:
         species = self.species or species
         metadata = self.metadata or metadata
         outfile = self.outfile or outfile
+        counts = self.counts or counts
 
         get_dee2 = robjects.r['getDEE2']
         srr_vector = self.convert_to_srr_vector() or srr_vector
@@ -279,6 +282,9 @@ class DEE2:
         """
 
         species = self.species or species
+        col = self.col or col
+        counts = self.counts or counts
+        bundles = self.bundles or bundles
 
         get_dee2_bundles = robjects.r['getDEE2_bundle']
 
@@ -347,9 +353,8 @@ class DEE2:
 
         return data
 
-    @staticmethod
     @convert_rdf_to_pd
-    def _call_load_functions(func_name: str, zip_name: str = None) -> [str, DataFrame]:
+    def _call_load_functions(self, func_name: str, zip_name: str = None) -> [str, DataFrame]:
         """
         Makes sure the code respects the DRY principle.
 
@@ -359,6 +364,8 @@ class DEE2:
 
         if func_name is None:
             return print("You have not set a load function to call. Please set the 'load_func' attribute.")
+
+        zip_name = self.dee2_zip or zip_name
 
         grab_func = robjects.r[func_name]
 
@@ -379,7 +386,7 @@ class DEE2:
 
         return self._call_load_functions('loadFullMeta', zip_name)
 
-    def loadGeneCounts(self, zip_name: str) -> [str, DataFrame]:
+    def loadGeneCounts(self, zip_name: str = None) -> [str, DataFrame]:
         """
         Runs the loadGeneCounts() R function from getDEE2 R package.
 
@@ -392,7 +399,7 @@ class DEE2:
 
         return self._call_load_functions('loadGeneCounts', zip_name)
 
-    def loadGeneInfo(self, zip_name: str) -> [str, DataFrame]:
+    def loadGeneInfo(self, zip_name: str = None) -> [str, DataFrame]:
         """
         Runs the loadGeneInfo() R function from getDEE2 R package.
 
@@ -406,7 +413,7 @@ class DEE2:
 
         return self._call_load_functions('loadGeneInfo', zip_name)
 
-    def loadQcMx(self, zip_name: str) -> [str, DataFrame]:
+    def loadQcMx(self, zip_name: str = None) -> [str, DataFrame]:
         """
         Runs the loadQcMx() R function from getDEE2 R package.
 
@@ -421,7 +428,7 @@ class DEE2:
 
         return self._call_load_functions('loadQcMx', zip_name)
 
-    def loadSummaryMeta(self, zip_name: str) -> [str, DataFrame]:
+    def loadSummaryMeta(self, zip_name: str = None) -> [str, DataFrame]:
         """
         Runs the loadSummaryMeta() R function from getDEE2 R package.
 
@@ -435,7 +442,7 @@ class DEE2:
 
         return self._call_load_functions('loadSummaryMeta', zip_name)
 
-    def loadTxCounts(self, zip_name: str) -> [str, DataFrame]:
+    def loadTxCounts(self, zip_name: str = None) -> [str, DataFrame]:
         """
         Runs the loadTxCounts() R function from getDEE2 R package.
 
@@ -449,7 +456,7 @@ class DEE2:
 
         return self._call_load_functions('loadTxCounts', zip_name)
 
-    def loadTxInfo(self, zip_name: str) -> [str, DataFrame]:
+    def loadTxInfo(self, zip_name: str = None) -> [str, DataFrame]:
         """
         Runs the loadTxInfo() R function from getDEE2 R package.
 
@@ -484,6 +491,8 @@ class DEE2:
         :returns: a list of datasets that are present and absent.
         """
         species = self.species or species
+        col = self.col or col
+        bundles = self.bundles or bundles
 
         query_bundles = robjects.r['query_bundles']
 
@@ -494,7 +503,8 @@ class DEE2:
         return data
 
     @convert_query
-    def queryDEE2(self, species: str = None, srr_vector: [str, ListVector] = None, metadata=NULL, **kwargs) -> [None, ListVector]:
+    def queryDEE2(self, species: str = None, srr_vector: [str, ListVector] = None,
+                  metadata=NULL, **kwargs) -> [None, ListVector]:
         """
         Runs the queryDEE2() R function from getDEE2 R package.
 
