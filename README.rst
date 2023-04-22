@@ -80,7 +80,7 @@ All converted objects can be transformed to Pandas Dataframes for further manipu
 The module also offers full usability of the R module through Python. By default, R messages are turned off.
 To see the R shell in progress set :code:`supress_r_warnings` to :code:`False` on your DEE2 instance.
 
-Besides the possibility to manipulate data through pandas, the module also offers a :code:`convert_to_csv` method which
+Besides the possibility to manipulate data through pandas, the module also offers a :code:`convert_to_tsv` method which
 attempts to convert the previously created pandas DataFrames to a CSV file.
 
 Info about getDEE2 functions can be found on the packages' website.
