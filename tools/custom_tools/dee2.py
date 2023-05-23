@@ -62,11 +62,12 @@ def main():
 
     if isinstance(func_call, SummarizedExperiment):
         # this is identical to the R: assays(x)$counts
-        # This needs to be implemented somehow
-        # results = func_call.assays.data.listData.counts
-
-        results = func_call.colData.to_pd()
+        results = func_call.assays.data.listData.counts.to_pd()
         results = dee2.convert_to_tsv(results, outfile)
+
+        # This is identical to the R: colData(x)
+        # results = func_call.colData.to_pd()
+        # results = dee2.convert_to_tsv(results, outfile)
     elif isinstance(func_call, ConvertedMatrix):
         results = func_call.df_matrix
         results = dee2.convert_to_tsv(results, outfile)
