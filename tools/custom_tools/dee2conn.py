@@ -171,7 +171,7 @@ class DEE2:
                     legacy=FALSE, base_url='http://dee2.io/cgi-bin/request.sh?') -> [None, RS4]:
         """
         Runs the getDEE2() R function from getDEE2 R package. This function does NOT return a Python Object. The goal
-        of this function is to be used when RS4 object are necessary. Run getDEE2() for Pytho friendly results.
+        of this function is to be used when RS4 object are necessary. Run getDEE2() for Python friendly results.
 
         The getDEE2 function fetches gene expression data from the DEE2 database of RNA sequencing data and returns it
         as a SummarizedExperiment object.
